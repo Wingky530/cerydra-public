@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SeasonalPage from '../pages-react/SeasonalPage';
+---
+
+<Layout title="Seasonal Anime - Cerydra" description="Browse current season's anime lineup. Discover new shows and trending series.">
+  <main class="min-h-screen bg-[var(--md-sys-color-background)]">
+    <SeasonalPage client:load />
+  </main>
+</Layout>

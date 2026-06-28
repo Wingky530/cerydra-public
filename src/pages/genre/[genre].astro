@@ -1,0 +1,17 @@
+---
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import GenrePage from '../../pages-react/GenrePage';
+
+const { genre } = Astro.params;
+
+// Formatting genre for title
+const formatTitle = (slug: string) => {
+  return slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+---
+
+<Layout title={`${formatTitle(genre || '')} Anime - Cerydra`} description={`Browse ${formatTitle(genre || '')} anime on Cerydra. Stream the best ${formatTitle(genre || '')} series online.`}>
+  <GenrePage client:only="react" genre={genre!} />
+</Layout>

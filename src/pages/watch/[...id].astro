@@ -1,0 +1,138 @@
+---
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import WatchPage from '../../pages-react/WatchPage';
+import client from '../../lib/turso';
+
+const paramId = Astro.params.id;
+const parts = paramId?.split('/') || [];
+const id = parts[0] || '';
+const episodeFromPath = parts.length >= 3 ? parts[parts.length - 1] : '';
+const episode = Astro.url.searchParams.get('v') || episodeFromPath || '1';
+
+// SSR: ambil currentTime dari DB biar langsung seek pas render pertama
+let initialTime: number | undefined;
+try {
+  if (client) {
+    const userId = Astro.cookies.get('cerydra_user_id')?.value || '';
+    if (userId) {
+      const result = await client.execute({
+        sql: 'SELECT current_time FROM watch_history WHERE user_id = ? AND anime_id = ? AND episode = ?',
+        args: [userId, id as string, episode as string],
+      });
+      if (result.rows.length > 0) {
+        const val = Number(result.rows[0].current_time);
+        if (val > 0) initialTime = val;
+      }
+    }
+  }
+} catch (e) {
+  console.error('SSR initialTime fetch error:', e);
+}
+
+const anilistIdRaw = Astro.url.searchParams.get('anilist_id');
+const anilistId = anilistIdRaw ? parseInt(anilistIdRaw) : (/^\d+$/.test(id) ? parseInt(id) : undefined);
+
+let animeName = 'Anime';
+let animeThumbnail = '';
+let animeDescription = '';
+let animeScore = '';
+let animeGenres = '';
+
+try {
+  if (anilistId) {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `query($id: Int) {
+          Media(id: $id, type: ANIME) {
+            title { english romaji }
+            coverImage { extraLarge }
+            description(asHtml: false)
+            meanScore
+            genres
+          }
+        }`,
+        variables: { id: anilistId }
+      })
+    });
+    
+    if (res.ok) {
+      const text = await res.text();
+      try {
+        const json = JSON.parse(text);
+        const media = json?.data?.Media;
+        if (media) {
+          animeName = media.title.english || media.title.romaji || animeName;
+          animeThumbnail = media.coverImage?.extraLarge || '';
+          animeDescription = media.description 
+            ? media.description.replace(/<[^>]*>?/gm, '').trim().slice(0, 160) + (media.description.length > 160 ? '...' : '')
+            : '';
+          animeScore = media.meanScore ? (media.meanScore / 10).toString() : '';
+          animeGenres = media.genres ? media.genres.join(',') : '';
+        }
+      } catch(e) {
+        console.error('SSR Meta fetch error (AniList - invalid JSON):', text.slice(0, 100));
+      }
+    }
+  } else {
+    // Fallback for stream IDs without anilist_id parameter
+    const url = new URL(`/api/anime/episodes?id=${encodeURIComponent(id!)}`, Astro.url);
+    const res = await fetch(url);
+    if (res.ok) {
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        const show = data?.data?.show;
+        if (show) {
+          animeName = show.englishName || show.name || animeName;
+          animeThumbnail = show.thumbnail || '';
+        }
+      } catch(e) {
+        console.error('SSR Meta fetch error (Episodes API - invalid JSON):', text.slice(0, 100));
+      }
+    }
+  }
+} catch (e) {
+  console.error('SSR Meta fetch error:', e);
+}
+
+const ogSynopsis = encodeURIComponent((animeDescription || '').slice(0, 280));
+const ogScore = animeScore ? `&score=${encodeURIComponent(animeScore)}` : '';
+const ogGenres = animeGenres ? `&genres=${encodeURIComponent(animeGenres)}` : '';
+const ogImageUrl = `https://cerydra.my.id/api/og?title=${encodeURIComponent(animeName)}&cover=${encodeURIComponent(animeThumbnail)}&type=watch&episode=${encodeURIComponent(episode)}&synopsis=${ogSynopsis}${ogScore}${ogGenres}`;
+---
+
+<Layout
+  title={`${animeName} Ep. ${episode} - Cerydra`}
+  description={animeDescription || `Watch ${animeName} Episode ${episode} online on Cerydra. HD streaming.`}
+  image={ogImageUrl}
+  canonicalUrl={`/watch/${id}`}
+>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TVEpisode",
+        "name": `Episode ${episode}`,
+        "url": `https://cerydra.my.id/watch/${paramId}`,
+        "partOfSeries": {
+          "@type": "TVSeries",
+          "name": animeName,
+          "url": `https://cerydra.my.id/anime/${id}`
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cerydra.my.id" },
+          { "@type": "ListItem", "position": 2, "name": animeName, "item": `https://cerydra.my.id/anime/${id}` },
+          { "@type": "ListItem", "position": 3, "name": `Ep. ${episode}`, "item": `https://cerydra.my.id/watch/${paramId}` }
+        ]
+      }
+    ]
+  })} />
+  <WatchPage client:load animeId={id!} episode={episode!} initialTime={initialTime} anilistId={anilistId} />
+</Layout>

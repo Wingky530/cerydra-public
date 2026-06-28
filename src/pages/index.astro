@@ -1,0 +1,16 @@
+---
+export const prerender = false;
+export const revalidate = 120;
+
+import Layout from '../layouts/Layout.astro';
+import HomePage from '../pages-react/HomePage';
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+---
+
+<Layout 
+  title="Cerydra — Watch Anime Online for Free" 
+  description="Stream the latest seasonal anime, discover top-rated classics, and track your watch history. Enjoy a premium, high-quality anime watching experience on Cerydra."
+>
+  <HomePage client:load />
+</Layout>

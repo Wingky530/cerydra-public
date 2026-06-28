@@ -1,0 +1,28 @@
+---
+import Layout from '../layouts/Layout.astro'
+import ScheduleClient from '../components/schedule/ScheduleClient'
+import { getScheduleForDay } from '../lib/schedule/cacheSchedule'
+import type { DayKey } from '../lib/schedule/types'
+
+const DAYS: DayKey[] = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+const DAY_LABEL: Record<DayKey, string> = {
+  sunday: 'Sun', monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed',
+  thursday: 'Thu', friday: 'Fri', saturday: 'Sat',
+}
+
+const jsDay = new Date().getDay()
+const todayKey: DayKey = DAYS[jsDay]
+
+const todaySchedule = await getScheduleForDay(todayKey)
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+---
+
+<Layout title="Schedule — Cerydra" description="Weekly anime release schedule. See what airs today and plan your watchlist.">
+  <ScheduleClient
+    client:load
+    initialDay={todayKey}
+    initialData={todaySchedule}
+    days={DAYS}
+    dayLabels={DAY_LABEL}
+  />
+</Layout>

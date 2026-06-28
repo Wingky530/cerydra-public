@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* MD3 Base Colors (Dark Theme) — Dark Gray Neutral + Muted Cyan (Harmonized) */
+  --md-sys-color-primary: #36BAE8;
+  --md-sys-color-on-primary: #001E22;
+  --md-sys-color-primary-container: #003D47;
+  --md-sys-color-on-primary-container: #5FE0ED;
+
+  --md-sys-color-secondary: #A3A3A3;
+  --md-sys-color-on-secondary: #121212;
+  --md-sys-color-secondary-container: #333333;
+  --md-sys-color-on-secondary-container: #E5E5E5;
+
+  --md-sys-color-background: #1E1E1E;
+  --md-sys-color-on-background: #E5E5E5;
+  --md-sys-color-surface: #212121;
+  --md-sys-color-surface-container-low: #262626;
+  --md-sys-color-surface-container: #2B2B2B;
+  --md-sys-color-surface-container-high: #303030;
+  --md-sys-color-surface-container-highest: #383838;
+  --md-sys-color-on-surface: #E5E5E5;
+  --md-sys-color-surface-variant: #383838;
+  --md-sys-color-on-surface-variant: #A3A3A3;
+  --md-sys-color-outline: #525252;
+  --md-sys-color-outline-variant: #404040;
+  --md-sys-color-star: #FFD700;
+
+  /* MD3 Shape Tokens */
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+
+  --md-elevation-level: 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  font-family: 'Inter', Roboto, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Material Web Default Styling Overrides */
+* {
+  --md-ref-typeface-plain: 'Inter', Roboto, sans-serif;
+  --md-ref-typeface-weight-regular: 400;
+  --md-ref-typeface-weight-medium: 500;
+  --md-ref-typeface-weight-bold: 700;
+}
+
+/* Material Web Default Styling Overrides */
+md-filled-button {
+  --md-sys-color-primary: #3DD9E0;
+  --md-sys-color-on-primary: #00363A;
+}
+
+md-outlined-button {
+  --md-sys-color-primary: #3DD9E0;
+  --md-sys-color-outline: #3DD9E0;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Base link styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Video player skip feedback animation */
+@keyframes fadeOut {
+  0% { opacity: 1; transform: scale(1); }
+  70% { opacity: 0.8; transform: scale(1.05); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+
+
+.animate-fade-out {
+  animation: fadeOut 0.6s ease forwards;
+}
+
+/* Custom Scrollbar - Disabled Globally */
+::-webkit-scrollbar, .custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.custom-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Material Symbols Variable Settings */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Disable native Chrome Cast overlay */
+video::-webkit-media-controls-overlay-cast-button {
+  display: none !important;
+}
+
+/* Prevent Astro View Transitions from glitching the persisted GlobalPlayer */
+::view-transition-group(global-player),
+::view-transition-old(global-player),
+::view-transition-new(global-player) {
+  animation: none !important;
+  mix-blend-mode: normal !important;
+}
+::view-transition-old(global-player) {
+  display: none !important;
+}
+

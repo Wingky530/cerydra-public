@@ -1,0 +1,12 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import SearchPage from '../pages-react/SearchPage';
+
+const q = Astro.url.searchParams.get('q') ?? '';
+---
+
+<Layout title="Search - Cerydra" description={`Search anime on Cerydra${q ? ` — ${q}` : ''}.`}>
+  <SearchPage client:load initialQuery={q} />
+</Layout>

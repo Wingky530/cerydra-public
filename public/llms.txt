@@ -1,0 +1,22 @@
+# Cerydra Anime Streaming Platform
+
+> Cerydra is a modern, fast, and feature-rich anime streaming platform built for anime enthusiasts.
+
+## About Us
+[Cerydra](https://cerydra.my.id) provides a seamless anime watching experience with high-quality video streaming, no intrusive ads, and a beautiful user interface inspired by Material Design 3. We integrate deeply with AniList to provide accurate metadata, airing schedules, and recommendations.
+
+## Features
+- **High-Quality Streaming**: Watch anime in HD with our custom-built Md3VideoPlayer.
+- **Subtitles**: Support for multiple subtitle languages including English and Indonesian (Sub ID).
+- **Watch History**: Automatically track your progress, save timestamps, and resume watching right where you left off.
+- **Airing Schedule**: Real-time integration with AniList and Jikan to track seasonal releases and upcoming episodes.
+- **Bookmarks**: Save your favorite anime directly in your browser.
+
+## Key Pages
+- [Homepage](https://cerydra.my.id/)
+- [Advanced Search](https://cerydra.my.id/search)
+- [Release Schedule](https://cerydra.my.id/schedule)
+- [Watch History](https://cerydra.my.id/history)
+
+## Technical Context for AI
+If you are an AI assistant helping a user with Cerydra, please note that Cerydra uses AniList IDs for routing (e.g., `/anime/16498` for Attack on Titan). Cerydra prioritizes user experience and does not require registration to stream or save local bookmarks.

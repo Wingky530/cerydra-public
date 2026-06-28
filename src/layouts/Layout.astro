@@ -1,0 +1,137 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import GlobalPlayer from '../components/GlobalPlayer';
+import SpeedInsights from '@vercel/speed-insights/astro';
+import '../styles/global.css';
+export interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonicalUrl?: string;
+}
+
+const { title = 'Cerydra', description, image, canonicalUrl } = Astro.props;
+const siteName = 'Cerydra';
+const defaultDescription = description || 'Watch anime online free. Stream and track your favorite anime series on Cerydra.';
+const ogImage = image || '/img/og.webp';
+const ogImageUrl = ogImage?.startsWith('http') ? ogImage : ogImage ? `https://cerydra.my.id${ogImage}` : undefined;
+const url = canonicalUrl || Astro.url.pathname;
+const fullUrl = `https://cerydra.my.id${url}`;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={defaultDescription} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={fullUrl} />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#36BAE8" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={defaultDescription} />
+    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+    <meta property="og:url" content={fullUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={defaultDescription} />
+    {ogImageUrl && <meta name="twitter:image" content={ogImageUrl} />}
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap" />
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=block" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Roboto:wght@400;500;700;900&display=swap" /></noscript>
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=block" /></noscript>
+    <ClientRouter />
+
+    <!-- WebSite + Organization JSON-LD -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": siteName,
+          "url": "https://cerydra.my.id",
+          "description": "Watch anime online free. Stream and track your favorite anime series on Cerydra.",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://cerydra.my.id/search?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": siteName,
+          "url": "https://cerydra.my.id",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://cerydra.my.id/favicon.svg"
+          }
+        }
+      ]
+    })} />
+  </head>
+  <body class="scrollbar-hide">
+    <GlobalPlayer client:only="react" transition:persist="global-player" />
+    <SpeedInsights />
+    <slot />
+    <script>
+      // Import material web components only on the client side to prevent Node.js SSR crashes
+      import '@material/web/button/filled-button.js';
+      import '@material/web/button/outlined-button.js';
+      import '@material/web/button/text-button.js';
+      import '@material/web/progress/circular-progress.js';
+      import '@material/web/progress/linear-progress.js';
+    </script>
+    <script>
+      // Global error suppression for React hydration
+      const suppressError = (msg: any) => {
+        if (!msg) return false;
+        const str = String(msg).toLowerCase();
+        return str.includes('hydration') || str.includes('react error #418') || str.includes('react error #423');
+      };
+      
+      const originalError = console.error;
+      console.error = function(...args) {
+        if (suppressError(args[0])) return;
+        originalError.apply(console, args);
+      };
+
+      window.addEventListener('error', (e) => {
+        if (suppressError(e.message)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      });
+    </script>
+    <script>
+      (function(){
+        var key = 'cerydra_user_id';
+        var id = localStorage.getItem(key);
+        if (!id) {
+          id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+          });
+          localStorage.setItem(key, id);
+        }
+        document.cookie = key + '=' + encodeURIComponent(id) + '; path=/; max-age=31536000; SameSite=Lax';
+      })();
+    </script>
+  </body>
+</html>

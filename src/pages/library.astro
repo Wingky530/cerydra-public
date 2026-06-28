@@ -1,0 +1,10 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import LibraryPage from '../pages-react/LibraryPage';
+---
+
+<Layout title="Library - Cerydra" description="Your saved anime collection on Cerydra. Bookmarked series and watch later list.">
+  <LibraryPage client:load />
+</Layout>

@@ -1,0 +1,19 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import ProfilePage from '../pages-react/ProfilePage';
+import { execSync } from 'node:child_process';
+
+let commitHash = 'dev';
+try {
+  commitHash = process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 
+               execSync('git rev-parse --short HEAD').toString().trim();
+} catch (e) {
+  // Ignore
+}
+---
+
+<Layout title="Profile - Cerydra" description="Your Cerydra profile settings and preferences.">
+  <ProfilePage client:load version={commitHash} />
+</Layout>

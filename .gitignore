@@ -1,0 +1,40 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# Android app
+cerydra-app/.gradle/
+cerydra-app/build/
+cerydra-app/app/build/
+cerydra-app/local.properties
+cerydra-app/.idea/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# scratch and testing files
+scratch/
+test-*
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+.vercel/
+test-anilist.js
+.vercel
+local.db

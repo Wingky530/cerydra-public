@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Allow: /api/sitemap-anime.xml
+
+Sitemap: https://cerydra.my.id/sitemap-index.xml
+Sitemap: https://cerydra.my.id/api/sitemap-anime.xml

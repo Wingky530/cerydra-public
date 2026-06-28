@@ -1,0 +1,68 @@
+---
+export const prerender = false;
+
+import client from '../../lib/turso';
+import PresenceStatus from '../../components/PresenceStatus';
+
+const { username } = Astro.params;
+
+let initialPresence: any = { status: 'idle' };
+
+if (client && username) {
+  try {
+    const result = await client.execute({
+      sql: 'SELECT * FROM presence WHERE username = ?',
+      args: [username],
+    });
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      const updatedAt = Number(row.updated_at);
+      if (updatedAt >= Date.now() - 5 * 60 * 1000) {
+        initialPresence = {
+          user_id: row.user_id as string,
+          username: row.username as string,
+          avatar: row.avatar as string,
+          activity_type: row.activity_type as string,
+          anime_title: row.anime_title as string,
+          episode_number: row.episode_number as number,
+          episode_title: row.episode_title as string,
+          duration: row.duration as number,
+          position: row.position as number,
+          updated_at: updatedAt,
+        };
+      }
+    }
+  } catch (e) {
+    console.error('Presence SSR error:', e);
+  }
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{username} - Presence - Cerydra</title>
+    <meta name="description" content={`${username}'s activity status on Cerydra. See what they're watching right now.`} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={`https://cerydra.my.id/u/${username}`} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#0B0E1A" />
+    <meta property="og:title" content={`${username} - Presence - Cerydra`} />
+    <meta property="og:description" content={`${username}'s activity status on Cerydra.`} />
+    <meta property="og:url" content={`https://cerydra.my.id/u/${username}`} />
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="Cerydra" />
+    <meta property="og:image" content="https://cerydra.my.id/og-image.svg" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={`${username} - Presence - Cerydra`} />
+    <meta name="twitter:description" content={`${username}'s activity status on Cerydra.`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  </head>
+  <body class="m-0 p-0">
+    <PresenceStatus client:load initialData={initialPresence} username={username!} />
+  </body>
+</html>
