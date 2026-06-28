@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/img/logo.png" alt="Cerydra Logo" width="120" />
+  <img src="public/img/og.webp" alt="Cerydra Logo" width="250" />
   <h1>Cerydra Anime Streaming</h1>
   <p><strong>A beautifully designed, premium anime streaming application built with Astro 6, React 19, and Material UI 3.</strong></p>
   
