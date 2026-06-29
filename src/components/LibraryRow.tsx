@@ -33,7 +33,7 @@ export default function LibraryRow() {
         }
       `;
       
-      const res = await fetch('https://graphql.anilist.co', {
+      const res = await fetch('/api/anime/ani-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,6 +41,7 @@ export default function LibraryRow() {
           variables: { idIn: entryIds.map(Number) }
         }),
       });
+      if (!res.ok) return {};
       const json = await res.json();
       
       // Map id to status/episodes
@@ -103,14 +104,10 @@ export default function LibraryRow() {
         {/* We reverse the library array so the newest added are shown first */}
         {latestEntries.map(entry => {
           const liveInfo = liveData?.[entry.animeId];
-          let episodeText = '';
+          let episodeText: string | undefined;
           if (liveInfo) {
-            if (liveInfo.status === 'RELEASING') {
-              episodeText = 'Ongoing';
-            } else if (liveInfo.status === 'FINISHED') {
-              episodeText = liveInfo.episodes ? `${liveInfo.episodes} Episode` : 'Completed';
-            } else {
-              episodeText = liveInfo.status;
+            if (liveInfo.episodes) {
+              episodeText = `${liveInfo.episodes} Episode`;
             }
           }
           

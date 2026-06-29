@@ -61,7 +61,7 @@ export default function RecentlyUpdated() {
                   showEpisode={!!entry.episode}
                   showRating={false}
                   showPopularity={false}
-                  statusLabel={entry.updatedAt ? timeAgo(entry.updatedAt) : undefined}
+                  timeLabel={entry.updatedAt ? timeAgo(entry.updatedAt) : undefined}
                   href={getAnimeUrl(entry.id, entry.title)}
                 />
               </div>

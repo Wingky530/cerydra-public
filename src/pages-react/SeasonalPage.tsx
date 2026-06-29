@@ -18,8 +18,22 @@ const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 15 }, (_, i) => currentYear + 1 - i);
 
 function SeasonalContent() {
-  const [season, setSeason] = useState(getCurrentSeason());
-  const [year, setYear] = useState(currentYear);
+  const [season, setSeason] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const s = urlParams.get('season');
+      if (s && SEASONS.includes(s.toUpperCase())) return s.toUpperCase();
+    }
+    return getCurrentSeason();
+  });
+  const [year, setYear] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const y = urlParams.get('year');
+      if (y && !isNaN(parseInt(y))) return parseInt(y);
+    }
+    return currentYear;
+  });
   const [sort, setSort] = useState<SortOption>('POPULARITY_DESC');
   const [page, setPage] = useState(1);
   const [allResults, setAllResults] = useState<any[]>([]);
@@ -167,6 +181,20 @@ function SeasonalContent() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Active Filters Indicator */}
+        <div className="flex flex-wrap gap-2 mb-6 px-2">
+          <div className="px-3 py-1.5 rounded-full bg-[var(--md-sys-color-primary)]/10 text-[var(--md-sys-color-primary)] text-xs font-bold tracking-wider flex items-center gap-1 border border-[var(--md-sys-color-primary)]/20">
+            <span className="material-symbols-outlined text-[14px]">calendar_month</span>
+            {season} {year}
+          </div>
+          {sort !== 'POPULARITY_DESC' && (
+            <div className="px-3 py-1.5 rounded-full bg-[var(--md-sys-color-surface-container-highest)] text-[var(--md-sys-color-on-surface-variant)] text-xs font-bold tracking-wider flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">sort</span>
+              {sort.replace('_DESC', '').replace('TITLE_ENGLISH', 'NAME')}
+            </div>
+          )}
         </div>
 
         {/* Content */}

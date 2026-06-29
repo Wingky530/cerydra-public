@@ -67,7 +67,7 @@ export default function ContinueWatchingRow() {
                   navigate(getWatchUrl(entry.animeId, entry.episode, entry.animeName));
                 }}
                 progressPercent={progress}
-                episodeText={`Ep. ${entry.episode}`}
+                episodeText={`Ep ${entry.episode}`}
               />
             </div>
           );

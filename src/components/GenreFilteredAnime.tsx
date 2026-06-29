@@ -16,6 +16,7 @@ export default function GenreFilteredAnime() {
               idMal
               title { english romaji }
               coverImage { extraLarge }
+              bannerImage
               description
               averageScore
               episodes
@@ -50,7 +51,13 @@ export default function GenreFilteredAnime() {
   const showSkeleton = isBentoPending || !mounted;
 
   const bentoItems = useMemo(() => {
-    if (showSkeleton || !bentoData) return ALL_GENRES.map(g => ({ ...g, animeTitle: '' }));
+    if (showSkeleton || !bentoData) {
+      return ALL_GENRES.map(g => ({
+        ...g,
+        animeTitle: (g as any).fallbackTitle || '',
+        image: (g as any).fallbackBanner || g.image
+      }));
+    }
 
     let userId = typeof window !== 'undefined' ? localStorage.getItem('cerydra_user_id') : null;
     if (!userId && typeof window !== 'undefined') {
@@ -66,10 +73,14 @@ export default function GenreFilteredAnime() {
         return {
           ...genreObj,
           animeTitle: picked.title?.english || picked.title?.romaji || 'Unknown',
-          image: picked.coverImage?.extraLarge || ''
+          image: picked.bannerImage || picked.coverImage?.extraLarge || ''
         };
       }
-      return { ...genreObj, animeTitle: '' };
+      return { 
+        ...genreObj, 
+        animeTitle: (genreObj as any).fallbackTitle || '',
+        image: (genreObj as any).fallbackBanner || genreObj.image
+      };
     });
   }, [bentoData, showSkeleton]);
 
@@ -101,16 +112,21 @@ export default function GenreFilteredAnime() {
               )}
               <div className="absolute -inset-1 bg-gradient-to-t from-[var(--md-sys-color-background)] from-20% via-[var(--md-sys-color-background)]/80 via-60% to-transparent opacity-90 group-hover:opacity-100 transition-opacity duration-300" />
               
-              {/* Hover Title Overlay */}
+              {/* Anime title: always visible on mobile, hover-only on desktop */}
               {item.animeTitle && (
-                <div className="absolute inset-0 flex items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-2xl overflow-hidden bg-[var(--md-sys-color-surface-container)]/80">
-                  <span className="text-white font-bold text-center text-sm md:text-base drop-shadow-lg leading-tight">
+                <>
+                  <span className="md:hidden relative z-20 text-white/70 text-[11px] leading-tight drop-shadow-md">
                     {item.animeTitle}
                   </span>
-                </div>
+                  <div className="hidden md:flex absolute inset-0 items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 rounded-2xl overflow-hidden bg-[var(--md-sys-color-surface-container)]/80">
+                    <span className="text-white font-bold text-center text-sm drop-shadow-lg leading-tight">
+                      {item.animeTitle}
+                    </span>
+                  </div>
+                </>
               )}
 
-              <span className="relative z-20 text-white font-bold text-sm md:text-base leading-tight drop-shadow-md group-hover:-translate-y-1 transition-transform duration-300 origin-bottom-left group-hover:opacity-0">
+              <span className="relative z-20 text-white font-bold text-sm md:text-base leading-tight drop-shadow-md md:group-hover:-translate-y-1 transition-transform duration-300 origin-bottom-left md:group-hover:opacity-0">
                 {item.name}
               </span>
               <svg className="absolute top-3 right-3 w-4 h-4 md:w-5 md:h-5 text-white/50 group-hover:text-white transition-colors duration-300 z-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>

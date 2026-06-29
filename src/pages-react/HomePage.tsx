@@ -5,6 +5,7 @@ import HeroCarousel from '../components/HeroCarousel';
 import ContinueWatchingRow from '../components/ContinueWatchingRow';
 import LibraryRow from '../components/LibraryRow';
 import SeasonalAnime from '../components/SeasonalAnime';
+import UpcomingSeason from '../components/UpcomingSeason';
 import RecentlyUpdated from '../components/RecentlyUpdated';
 import TopRatedAnime from '../components/TopRatedAnime';
 import GenreFilteredAnime from '../components/GenreFilteredAnime';
@@ -15,6 +16,22 @@ function HomeContent({ initialHero }: { initialHero?: any[] }) {
   const [showFloatingIsland, setShowFloatingIsland] = useState(false);
   const [isSearchLoading, setIsSearchLoading] = useState(true);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const pickRandomAnime = async () => {
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `query { Page(page: ${Math.floor(Math.random() * 50) + 1}, perPage: 1) { media(sort: POPULARITY_DESC, type: ANIME, isAdult: false) { id title { english romaji } } } }` })
+      });
+      const json = await res.json();
+      const media = json.data?.Page?.media?.[0];
+      if (media && media.id) {
+        const { navigate } = await import('astro:transitions/client');
+        navigate(getAnimeUrl(media.id, media.title?.english || media.title?.romaji));
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setIsSearchLoading(false), 1000);
@@ -38,11 +55,43 @@ function HomeContent({ initialHero }: { initialHero?: any[] }) {
     return () => observer.disconnect();
   }, [isSearchLoading]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      if (e.key === '/') {
+        e.preventDefault();
+        import('astro:transitions/client').then(({ navigate }) => navigate('/search'));
+      }
+      if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+        pickRandomAnime();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const keycap = 'inline-flex items-center justify-center min-w-[28px] h-[28px] px-[6px] bg-[var(--md-sys-color-surface-variant)] text-xs font-mono font-bold text-[var(--md-sys-color-on-surface)] rounded-md cursor-pointer hover:bg-[var(--md-sys-color-primary)] hover:text-white transition-colors select-none';
+  const tips: React.ReactNode[] = [
+    <>Press <button className={keycap} onClick={() => { import('astro:transitions/client').then(m => m.navigate('/search')); }} title="Go to search">/</button> to search any anime instantly</>,
+    <>Press <button className={keycap} onClick={pickRandomAnime} title="Random anime">R</button> for a random anime surprise</>,
+    'Swipe the carousel to browse trending anime',
+    'Add anime to your library to track your progress',
+    'Use the schedule to find when your anime airs',
+    'Browse genres to discover something new',
+    'Keep watching where you left off with watch history',
+  ];
+  const [tip] = useState(() => tips[Math.floor(Math.random() * tips.length)]);
+
   return (
     <>
+      <h1 className="sr-only">Cerydra — Watch Anime Online</h1>
       {/* Floating Island Search */}
       <div 
-        className={`fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] ${
+        className={`fixed top-4 md:top-8 left-1/2 -translate-x-1/2 z-[100] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
           showFloatingIsland 
             ? 'w-[320px] md:w-[400px] opacity-100 translate-y-0 scale-100' 
             : 'w-[120px] opacity-0 -translate-y-8 scale-75 pointer-events-none'
@@ -65,24 +114,11 @@ function HomeContent({ initialHero }: { initialHero?: any[] }) {
           </span>
         </a>
         <button 
-          onClick={async () => {
-            try {
-              const res = await fetch('https://graphql.anilist.co', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: `query { Page(page: ${Math.floor(Math.random() * 50) + 1}, perPage: 1) { media(sort: POPULARITY_DESC, type: ANIME, isAdult: false) { id title { english romaji } } } }` })
-              });
-              const json = await res.json();
-              const media = json.data?.Page?.media?.[0];
-              if (media && media.id) {
-                const { navigate } = await import('astro:transitions/client');
-                navigate(getAnimeUrl(media.id, media.title?.english || media.title?.romaji));
-              }
-            } catch {}
-          }}
-          className="w-[48px] h-[48px] rounded-full bg-[var(--md-sys-color-surface-container-high)] flex items-center justify-center text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container-highest)] transition-colors shadow-md flex-shrink-0"
+          onClick={pickRandomAnime}
+          className="w-[48px] h-[48px] rounded-full bg-[var(--md-sys-color-surface-container-high)] flex items-center justify-center text-[var(--md-sys-color-on-surface)] hover:text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container-highest)] transition-colors shadow-md flex-shrink-0"
+          title="Random anime"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/><path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/><path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/><path d="m18 14 4 4-4 4"/></svg>
         </button>
         </div>
       </div>
@@ -114,25 +150,17 @@ function HomeContent({ initialHero }: { initialHero?: any[] }) {
                 </span>
               </a>
               <button 
-                onClick={async () => {
-                  try {
-                    const res = await fetch('https://graphql.anilist.co', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ query: `query { Page(page: ${Math.floor(Math.random() * 50) + 1}, perPage: 1) { media(sort: POPULARITY_DESC, type: ANIME, isAdult: false) { id title { english romaji } } } }` })
-                    });
-                    const json = await res.json();
-                    const media = json.data?.Page?.media?.[0];
-                    if (media && media.id) {
-                      const { navigate } = await import('astro:transitions/client');
-                      navigate(getAnimeUrl(media.id, media.title?.english || media.title?.romaji));
-                    }
-                  } catch {}
-                }}
-                className="w-[56px] h-[56px] flex-shrink-0 rounded-full bg-[var(--md-sys-color-surface-container-high)] flex items-center justify-center text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container-highest)] transition-colors shadow-sm"
-                title="Randomize Anime"
+                onClick={pickRandomAnime}
+                className="w-[56px] h-[56px] flex-shrink-0 rounded-full bg-[var(--md-sys-color-surface-container-high)] flex items-center justify-center text-[var(--md-sys-color-on-surface)] hover:text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container-highest)] transition-colors shadow-sm"
+                title="Random anime"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><circle cx="15.5" cy="15.5" r="1.5"></circle><circle cx="15.5" cy="8.5" r="1.5"></circle><circle cx="8.5" cy="15.5" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/>
+                  <path d="m18 2 4 4-4 4"/>
+                  <path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/>
+                  <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/>
+                  <path d="m18 14 4 4-4 4"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -144,29 +172,43 @@ function HomeContent({ initialHero }: { initialHero?: any[] }) {
 
         {/* Schedule link — mobile only (desktop has dock nav) */}
         <div className="md:hidden px-2 mb-8">
+          {!mounted ? (
+            <div className="flex items-center gap-3 bg-[var(--md-sys-color-surface-container)] rounded-2xl p-4 animate-pulse">
+              <div className="w-12 h-12 rounded-xl bg-[var(--md-sys-color-surface-variant)] shrink-0" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-4 w-24 bg-[var(--md-sys-color-surface-variant)] rounded" />
+                <div className="h-3 w-36 bg-[var(--md-sys-color-surface-variant)] rounded" />
+              </div>
+              <div className="w-6 h-6 bg-[var(--md-sys-color-surface-variant)] rounded-full" />
+            </div>
+          ) : (
           <a
             href="/schedule"
             className="flex items-center gap-3 bg-[var(--md-sys-color-surface-container)] hover:bg-[var(--md-sys-color-surface-container-high)] rounded-2xl p-4 transition-colors group"
           >
             <div className="w-12 h-12 rounded-xl bg-[var(--md-sys-color-primary)]/10 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[var(--md-sys-color-secondary)] text-2xl">calendar_month</span>
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--md-sys-color-primary)]"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-[var(--md-sys-color-on-background)]">Schedule</p>
               <p className="text-sm text-[var(--md-sys-color-on-surface-variant)]">Weekly airing schedule</p>
             </div>
-            <span className="material-symbols-outlined text-[var(--md-sys-color-on-surface-variant)] group-hover:text-[var(--md-sys-color-primary)] transition-colors">chevron_right</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--md-sys-color-on-surface-variant)] group-hover:text-[var(--md-sys-color-primary)] transition-colors">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
           </a>
+          )}
         </div>
 
         <SeasonalAnime />
+        <UpcomingSeason />
         <TopRatedAnime />
         <GenreFilteredAnime />
         
         {/* Footer Area */}
-        <div className="mt-16 mb-24 flex flex-col items-center justify-center text-center opacity-60">
-          <p className="text-[var(--md-sys-color-on-surface-variant)] text-sm mb-3">
-            You've reached the bottom! Time to watch some anime 🍿
+        <div className="mt-16 mb-24 flex flex-col items-center justify-center text-center">
+          <p className="text-[var(--md-sys-color-on-surface-variant)] text-sm mb-3 max-w-lg leading-relaxed">
+            {tip}
           </p>
           <button 
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

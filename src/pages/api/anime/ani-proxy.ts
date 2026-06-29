@@ -34,6 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!res.ok) {

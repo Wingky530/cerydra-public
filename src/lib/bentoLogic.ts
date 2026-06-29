@@ -15,7 +15,7 @@ export const ALL_GENRES = [
   { name: "Thriller", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1535-kUgkcrfOrkUM.jpg", bento: "" },
   { name: "Mecha", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx30-AI1zr74Dh4ye.jpg", bento: "" },
   { name: "Music", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20665-TLgkL8T8IRFd.png", bento: "md:col-span-2" },
-  { name: "Mahou Shoujo", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9756-QnUGwlwwnsuN.jpg", bento: "" },
+  { name: "Mahou Shoujo", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9756-QnUGwlwwnsuN.jpg", fallbackBanner: "https://s4.anilist.co/file/anilistcdn/media/anime/banner/9756-d5M8NffgJJHB.jpg", fallbackTitle: "Puella Magi Madoka Magica", bento: "" },
   { name: "Ecchi", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b19815-sEOQ9yQaPKlk.jpg", bento: "" },
   { name: "Isekai", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11757-SxYDUzdr9rh2.jpg", bento: "col-span-2 md:col-span-1 md:row-span-2" },
   { name: "School", image: "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20755-dWrhs569YGUO.jpg", bento: "" },

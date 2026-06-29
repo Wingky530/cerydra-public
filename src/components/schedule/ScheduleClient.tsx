@@ -130,7 +130,7 @@ export default function ScheduleClient({ initialDay, initialData, days, dayLabel
     <AppShell activeTab="schedule">
       {/* Floating Search Island */}
       <div 
-        className={`fixed top-[88px] left-1/2 -translate-x-1/2 z-[60] transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] w-[320px] md:w-[400px] ${
+        className={`fixed top-[16px] left-1/2 -translate-x-1/2 z-[60] transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] w-[320px] md:w-[400px] ${
           showFloatingIsland
             ? 'opacity-100 translate-y-0 scale-100' 
             : 'opacity-0 -translate-y-8 scale-75 pointer-events-none'
@@ -139,7 +139,9 @@ export default function ScheduleClient({ initialDay, initialData, days, dayLabel
         <div className="flex gap-2 w-full">
           <div className="flex-1 flex items-center h-[48px] bg-[var(--md-sys-color-surface-container-high)] shadow-md rounded-full px-2 text-[var(--md-sys-color-on-surface)] overflow-hidden border border-white/5">
             <div className="flex items-center justify-center w-10 h-10 text-[var(--md-sys-color-on-surface-variant)] shrink-0">
-              <span className="material-symbols-outlined text-[20px]">search</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
             </div>
             <input
               type="text"
@@ -153,7 +155,9 @@ export default function ScheduleClient({ initialDay, initialData, days, dayLabel
                 onClick={() => setSearchQuery('')}
                 className="w-10 h-10 flex items-center justify-center rounded-full text-[var(--md-sys-color-on-surface-variant)] hover:text-white shrink-0 transition-colors"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
               </button>
             )}
           </div>
@@ -190,7 +194,7 @@ export default function ScheduleClient({ initialDay, initialData, days, dayLabel
                 placeholder="Search schedule..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 bg-transparent text-[var(--md-sys-color-on-surface)] text-lg outline-none placeholder:text-white/30"
+                className="w-full h-10 bg-transparent text-[var(--md-sys-color-on-surface)] text-lg outline-none placeholder:text-white/50"
               />
             ) : (
               <h1 className="text-xl md:text-2xl font-black text-[var(--md-sys-color-on-surface)] tracking-wide">SCHEDULE</h1>

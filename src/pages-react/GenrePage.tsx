@@ -5,6 +5,7 @@ import AnimeGridSkeleton from '../components/AnimeGridSkeleton';
 import GenreHero from '../components/GenreHero';
 import AppShell from '../components/AppShell';
 import ErrorBoundary from '../components/ErrorBoundary';
+import FilterSortModal, { type SortOption } from '../components/FilterSortModal';
 
 const GENRE_MAP: Record<string, string> = {
   // Official Genres
@@ -28,17 +29,18 @@ function GenreContent({ genre }: { genre: string }) {
   const [page, setPage] = useState(1);
   const [allAnime, setAllAnime] = useState<any[]>([]);
   const [visibleGridCount, setVisibleGridCount] = useState(24);
+  const [sort, setSort] = useState<SortOption>('POPULARITY_DESC');
 
   const genreQueryStr = GENRE_MAP[genre.toLowerCase()] || genre.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const isOfficialGenre = OFFICIAL_ANILIST_GENRES.has(genreQueryStr);
 
   const { data: rawData, isPending, isError } = useQuery<any[]>({
-    queryKey: ['genre-page', genreQueryStr, page],
+    queryKey: ['genre-page', genreQueryStr, page, sort],
     queryFn: async ({ signal }) => {
       const query = `
-        query ($page: Int, $genre: String, $tag: String) {
+        query ($page: Int, $genre: String, $tag: String, $sort: [MediaSort]) {
           Page(page: $page, perPage: 50) {
-            media(type: ANIME, genre: $genre, tag: $tag, sort: SCORE_DESC, isAdult: false, countryOfOrigin: "JP") {
+            media(type: ANIME, genre: $genre, tag: $tag, sort: $sort, isAdult: false, countryOfOrigin: "JP") {
               id
               idMal
               title { english romaji native }
@@ -54,8 +56,8 @@ function GenreContent({ genre }: { genre: string }) {
       `;
       
       const variables = isOfficialGenre 
-        ? { page, genre: genreQueryStr }
-        : { page, tag: genreQueryStr };
+        ? { page, genre: genreQueryStr, sort: [sort, 'ID_DESC'] }
+        : { page, tag: genreQueryStr, sort: [sort, 'ID_DESC'] };
 
       const res = await fetch('https://graphql.anilist.co', {
         method: 'POST',
@@ -114,6 +116,15 @@ function GenreContent({ genre }: { genre: string }) {
     }
   };
 
+  const handleApplyFilter = (_season: string, _year: number, newSort: SortOption) => {
+    if (newSort !== sort) {
+      setSort(newSort);
+      setPage(1);
+      setAllAnime([]);
+      setVisibleGridCount(24);
+    }
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -123,11 +134,17 @@ function GenreContent({ genre }: { genre: string }) {
         {/* Section Title */}
         <div className="flex items-center justify-between mb-6 mt-8 md:mt-12 px-2 md:px-4">
           <h2 className="text-[22px] md:text-2xl font-black text-[var(--md-sys-color-on-surface)] uppercase tracking-tight flex items-center gap-3">
-            <div className="w-1.5 h-6 md:h-7 bg-[var(--md-sys-color-primary)] rounded-full shadow-[0_0_10px_var(--md-sys-color-primary)]"></div>
+            <div className="w-1.5 h-6 md:h-7 bg-[var(--md-sys-color-primary)] rounded-full"></div>
             EXPLORE {genreQueryStr}
           </h2>
-          <div className="text-[var(--md-sys-color-on-surface-variant)] text-sm font-medium opacity-60 hidden md:block">
-            Most Popular
+          <div className="flex items-center gap-3">
+            <div className="text-[var(--md-sys-color-on-surface-variant)] text-sm font-medium opacity-60 hidden md:block">
+              {sort.replace('_DESC', '').replace('TITLE_ENGLISH', 'NAME')}
+            </div>
+            <FilterSortModal
+              currentSort={sort}
+              onApply={handleApplyFilter}
+            />
           </div>
         </div>
 

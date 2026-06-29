@@ -31,12 +31,19 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
   // Selection Mode States
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  const [editingCat, setEditingCat] = useState<{ id: string; name: string } | null>(null);
+  const [deleteCatConfirm, setDeleteCatConfirm] = useState<{ id: string; name: string } | null>(null);
+
   // Modal States
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
+  const [showCreateCat, setShowCreateCat] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
 
   // Filter & Display States
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [activeFilterTab, setActiveFilterTab] = useState<'SORT' | 'DISPLAY'>('SORT');
   const [sortBy, setSortBy] = useState<'names'|'rated'|'popular'|'episodes'|'last_watch'|'last_added'|'last_updated'|'random'>('last_added');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -44,16 +51,43 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
   const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
   const [showCategoryTabs, setShowCategoryTabs] = useState(true);
   const tabsRef = useRef<HTMLDivElement>(null);
-  const [showEndFade] = useState(false);
+  const [showEndFade] = useState(true);
   const [showItemCount, setShowItemCount] = useState(true);
   const [showRating, setShowRating] = useState(true);
   const [showEpisode, setShowEpisode] = useState(true);
   const [showPopularity, setShowPopularity] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   
+  // Selection onboarding
+  const [showSelectionHint, setShowSelectionHint] = useState(false);
+  
+  useEffect(() => {
+    if (mounted && !localStorage.getItem('cerydra_selection_hint_seen')) {
+      const t = setTimeout(() => { setShowSelectionHint(true); }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [mounted]);
+
+  // Toast
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
+
+  // Body scroll lock for modals
+  const anyModalOpen = showCategoryModal || showEditCategoryModal || showFilterModal || confirmDeleteSelected || showCreateCat || !!editingCat || !!deleteCatConfirm;
+  useEffect(() => { document.body.style.overflow = anyModalOpen ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [anyModalOpen]);
+
   // Sync State
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+
+  const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    setSyncProgress(0);
+    await syncLibrary((c, t) => setSyncProgress(Math.round((c/t)*100)));
+    setIsSyncing(false);
+    setSyncProgress(0);
+  };
 
   // DB History
   const [dbHistory, setDbHistory] = useState<Record<string, number>>({});
@@ -93,7 +127,7 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
           setDbHistory(histMap);
         }
       })
-      .catch(err => console.log('Failed to fetch history', err));
+      .catch(() => setToast('Could not load watch history for sorting'));
   }, []);
 
   // Save settings when changed
@@ -191,11 +225,7 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
   };
 
   const handleRemoveSelected = () => {
-    if (confirm(`Are you sure you want to remove ${selectedIds.size} anime from the Library?`)) {
-      removeFromLibrary(Array.from(selectedIds));
-      setIsSelectionMode(false);
-      setSelectedIds(new Set());
-    }
+    setConfirmDeleteSelected(true);
   };
 
   const handleShare = async () => {
@@ -207,10 +237,10 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
         await navigator.share({ title: 'Cerydra Library', text });
       } else {
         await navigator.clipboard.writeText(text);
-        alert('Text copied to clipboard!');
+        setToast('Text copied to clipboard!');
       }
-    } catch (e) {
-      console.log('Share failed', e);
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') setToast('Share failed');
     }
     setIsSelectionMode(false);
     setSelectedIds(new Set());
@@ -258,10 +288,16 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
   };
 
   const handleCreateCategory = () => {
-    const name = prompt('New Category Name:');
-    if (name && name.trim()) {
-      const newId = addCategory(name.trim());
+    setNewCatName('');
+    setShowCreateCat(true);
+  };
+
+  const confirmCreateCategory = () => {
+    if (newCatName.trim()) {
+      const newId = addCategory(newCatName.trim());
       setLocalCatSelections(prev => new Set(prev).add(newId));
+      setShowCreateCat(false);
+      setNewCatName('');
     }
   };
 
@@ -273,7 +309,7 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
       
       {/* FLOATING ISLAND (When scrolled) */}
       <div 
-        className={`fixed ${categories.length > 0 && showCategoryTabs ? 'top-[56px] md:top-[64px]' : 'top-4 md:top-6'} left-1/2 -translate-x-1/2 z-[60] transition-all duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] w-[320px] md:w-[400px] ${
+        className={`fixed ${categories.length > 0 && showCategoryTabs ? 'top-[56px] md:top-[64px]' : 'top-4 md:top-6'} left-1/2 -translate-x-1/2 z-[60] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] w-[320px] md:w-[400px] ${
           showFloatingIsland && !isSelectionMode
             ? 'opacity-100 translate-y-0 scale-100' 
             : 'opacity-0 -translate-y-8 scale-75 pointer-events-none'
@@ -341,11 +377,11 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
         ) : (
           <>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-wide uppercase">
-                {!showCategoryTabs ? (activeCategoryId ? categories.find(c => c.id === activeCategoryId)?.name : 'ALL ANIME') : 'LIBRARY'}
+              <h1 className="text-xl md:text-3xl font-black text-white tracking-wide uppercase">
+                {!showCategoryTabs ? (activeCategoryId ? categories.find(c => c.id === activeCategoryId)?.name : 'MY ANIME') : 'LIBRARY'}
               </h1>
               {showItemCount && !showCategoryTabs && (
-                <p className="text-sm font-medium text-[var(--md-sys-color-on-surface-variant)]">{viewEntries[activeViewIdx]?.length || 0} Anime</p>
+                <p className="text-sm font-medium text-[var(--md-sys-color-on-surface-variant)] mt-1">{viewEntries[activeViewIdx]?.length || 0} anime</p>
               )}
             </div>
             
@@ -353,15 +389,58 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
               <button 
                 onClick={() => setIsSearchActive(true)}
                 className="w-10 h-10 flex items-center justify-center text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-primary)] transition-colors"
+                aria-label="Search"
               >
                 <SearchIcon />
               </button>
               <button 
                 onClick={() => setShowFilterModal(true)}
                 className="w-10 h-10 flex items-center justify-center text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-primary)] transition-colors"
+                aria-label="Filter"
               >
                 <FilterIcon />
               </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowHeaderMenu(p => !p)}
+                  className="w-10 h-10 flex items-center justify-center text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-primary)] transition-colors relative"
+                  aria-label="More options"
+                >
+                  <span className="material-symbols-outlined text-[24px] leading-none">more_vert</span>
+                  {showSelectionHint && (
+                    <span className="absolute -top-1 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--md-sys-color-primary)] animate-ping" />
+                  )}
+                </button>
+                {showHeaderMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowHeaderMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--md-sys-color-surface-container-high)] rounded-2xl shadow-xl border border-white/10 py-2 min-w-[200px] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <button 
+                        onClick={() => { setShowHeaderMenu(false); setIsSelectionMode(true); setSelectedIds(new Set()); localStorage.setItem('cerydra_selection_hint_seen', '1'); setShowSelectionHint(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">checklist</span>
+                        Select items
+                      </button>
+                      <button 
+                        onClick={() => { setShowHeaderMenu(false); handleSync(); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+                      >
+                        <span className={`material-symbols-outlined text-[20px] ${isSyncing ? 'animate-spin' : ''}`}>sync</span>
+                        {isSyncing ? `Syncing ${syncProgress}%` : 'Sync Library'}
+                      </button>
+                      <div className="mx-3 my-1 border-t border-white/5" />
+                      <button 
+                        onClick={() => { setShowHeaderMenu(false); handleCreateCategory(); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">create_new_folder</span>
+                        Create category
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -392,7 +471,6 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
                )}
             </button>
             {views.slice(1).map((view, vi) => {
-              const _cat = categories[vi];
               return (
                 <button
                   key={view.id ?? vi}
@@ -540,7 +618,7 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
                             style={{ animationDelay: `${index * 30}ms` }}
                           >
                             <div
-                              className="flex gap-4 p-2 rounded-xl bg-[var(--md-sys-color-surface-container-high)] hover:bg-[var(--md-sys-color-surface-container-highest)] transition-colors cursor-pointer"
+                              className={`flex gap-4 py-3 px-4 md:px-4 transition-colors cursor-pointer group hover:bg-white/5 ${isSelected ? 'bg-[var(--md-sys-color-primary)]/10' : ''}`}
                               onClick={async () => {
                                 if (isSelectionMode) { toggleSelect(entry.animeId); } else {
                                   const { navigate } = await import('astro:transitions/client');
@@ -554,7 +632,7 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
                             >
                               <img src={entry.thumbnail} alt={entry.animeName} className="w-20 h-28 object-cover rounded-lg shrink-0" />
                               <div className="flex-1 py-1 pr-2">
-                                <h3 className="text-white font-bold line-clamp-2">{entry.englishName || entry.animeName}</h3>
+                                <h3 className="text-white font-bold line-clamp-2 group-hover:text-[var(--md-sys-color-primary)] transition-colors">{entry.englishName || entry.animeName}</h3>
                                 {showEpisode && entry.episodeCount && <p className="text-[var(--md-sys-color-on-surface-variant)] text-sm font-medium mt-1">{entry.episodeCount} Episodes</p>}
                                 {showRating && entry.score && (
                                   <div className="flex items-center gap-1 mt-1">
@@ -564,8 +642,8 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
                                 )}
                                 {showPopularity && entry.popularity && (
                                   <div className="mt-1 flex items-center gap-1">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--md-sys-color-primary)" stroke="var(--md-sys-color-primary)" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                                    <span className="text-[var(--md-sys-color-primary)] text-xs font-bold">#{entry.popularity}</span>
+                                    <span className="text-[var(--md-sys-color-secondary)] font-bold text-sm">#</span>
+                                    <span className="text-[var(--md-sys-color-secondary)] text-xs font-bold">{entry.popularity}</span>
                                   </div>
                                 )}
                               </div>
@@ -614,11 +692,11 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
 
       {/* MODAL: SET CATEGORY */}
       {showCategoryModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[var(--md-sys-color-surface-container)] w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
             <div className="p-6 pb-2">
               <h3 className="text-xl font-bold text-white mb-1">Set Category</h3>
-              <p className="text-sm text-[var(--md-sys-color-on-surface-variant)]">Add anime to your playlist</p>
+              <p className="text-sm text-[var(--md-sys-color-on-surface-variant)]">Add anime to your playlist · {selectedIds.size} selected</p>
             </div>
             
             <div className="p-4 overflow-y-auto max-h-[40vh] custom-scrollbar flex flex-col gap-2">
@@ -678,7 +756,7 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
 
       {/* MODAL: EDIT CATEGORY */}
       {showEditCategoryModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[var(--md-sys-color-surface-container)] w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/10 flex flex-col">
             <div className="p-6 pb-2 flex justify-between items-center">
               <div>
@@ -700,18 +778,13 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
                     <p className="text-white font-medium">{cat.name}</p>
                   </div>
                   <button 
-                    onClick={() => {
-                      const newName = prompt('Rename category:', cat.name);
-                      if (newName && newName.trim()) renameCategory(cat.id, newName.trim());
-                    }}
+                    onClick={() => setEditingCat({ id: cat.id, name: cat.name })}
                     className="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white rounded-lg hover:bg-white/10"
                   >
                     <EditIcon />
                   </button>
                   <button 
-                    onClick={() => {
-                      if (confirm(`Delete category "${cat.name}"?`)) removeCategory(cat.id, false);
-                    }}
+                    onClick={() => setDeleteCatConfirm({ id: cat.id, name: cat.name })}
                     className="w-8 h-8 flex items-center justify-center text-red-400/80 hover:text-red-400 rounded-lg hover:bg-red-400/10"
                   >
                     <TrashIcon />
@@ -732,9 +805,118 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
         </div>
       )}
 
+      {/* CONFIRM DELETE SELECTED */}
+      {confirmDeleteSelected && (
+        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--md-sys-color-surface-container)] w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/10">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white mb-2">Remove from Library?</h3>
+              <p className="text-sm text-[var(--md-sys-color-on-surface-variant)] leading-relaxed">
+                Are you sure you want to remove <strong className="text-white">{selectedIds.size}</strong> anime from the Library?
+              </p>
+            </div>
+            <div className="px-6 pb-4 flex justify-end gap-3">
+              <button onClick={() => setConfirmDeleteSelected(false)} className="px-5 py-2 font-bold text-white hover:bg-white/10 rounded-full transition-colors">Cancel</button>
+              <button onClick={() => { removeFromLibrary(Array.from(selectedIds)); setIsSelectionMode(false); setSelectedIds(new Set()); setConfirmDeleteSelected(false); }} className="px-5 py-2 font-bold bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE CATEGORY INPUT */}
+      {showCreateCat && (
+        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--md-sys-color-surface-container)] w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/10">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4">New Category</h3>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Category name"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') confirmCreateCategory(); }}
+                className="w-full px-4 py-3 bg-[var(--md-sys-color-surface-container-high)] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[var(--md-sys-color-primary)] placeholder:text-white/30"
+              />
+            </div>
+            <div className="px-6 pb-4 flex justify-end gap-3">
+              <button onClick={() => setShowCreateCat(false)} className="px-5 py-2 font-bold text-white hover:bg-white/10 rounded-full transition-colors">Cancel</button>
+              <button onClick={confirmCreateCategory} className="px-5 py-2 font-bold bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] rounded-full hover:opacity-90 transition-opacity">Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RENAME CATEGORY INPUT */}
+      {editingCat && (
+        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--md-sys-color-surface-container)] w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/10">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4">Rename Category</h3>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Category name"
+                defaultValue={editingCat.name}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const input = e.currentTarget.value.trim();
+                    if (input) { renameCategory(editingCat.id, input); setEditingCat(null); }
+                  }
+                  if (e.key === 'Escape') setEditingCat(null);
+                }}
+                onBlur={(e) => {
+                  const input = e.currentTarget.value.trim();
+                  if (input) { renameCategory(editingCat.id, input); }
+                  setEditingCat(null);
+                }}
+                className="w-full px-4 py-3 bg-[var(--md-sys-color-surface-container-high)] border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[var(--md-sys-color-primary)] placeholder:text-white/30"
+              />
+            </div>
+            <div className="px-6 pb-4 flex justify-end">
+              <button onClick={() => setEditingCat(null)} className="px-5 py-2 font-bold text-white hover:bg-white/10 rounded-full transition-colors">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE CATEGORY */}
+      {deleteCatConfirm && (
+        <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--md-sys-color-surface-container)] w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden border border-white/10">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white mb-2">Delete Category?</h3>
+              <p className="text-sm text-[var(--md-sys-color-on-surface-variant)] leading-relaxed">
+                Are you sure you want to delete "<strong className="text-white">{deleteCatConfirm.name}</strong>"? Anime in this category won't be deleted.
+              </p>
+            </div>
+            <div className="px-6 pb-4 flex justify-end gap-3">
+              <button onClick={() => setDeleteCatConfirm(null)} className="px-5 py-2 font-bold text-white hover:bg-white/10 rounded-full transition-colors">Cancel</button>
+              <button onClick={() => { removeCategory(deleteCatConfirm.id, false); setDeleteCatConfirm(null); }} className="px-5 py-2 font-bold bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SELECTION ONBOARDING HINT */}
+      {showSelectionHint && !isSelectionMode && (
+        <div className="fixed bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 z-[150] animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-[var(--md-sys-color-surface-container-high)] rounded-full px-5 py-3 shadow-lg border border-white/10 flex items-center gap-3 whitespace-nowrap">
+            <span className="material-symbols-outlined text-[var(--md-sys-color-primary)] text-[20px]">touch_app</span>
+            <span className="text-white text-sm font-medium">Tap & hold an anime to select, or tap the <span className="material-symbols-outlined text-[16px] align-text-bottom mx-0.5">checklist</span> icon</span>
+            <button 
+              onClick={() => { setShowSelectionHint(false); localStorage.setItem('cerydra_selection_hint_seen', '1'); }}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 shrink-0"
+            >
+              <CloseIcon />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* FILTER MODAL */}
       {showFilterModal && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-[10010] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowFilterModal(false)} />
           <div className="relative bg-[var(--md-sys-color-surface-container)] w-full sm:w-[480px] max-h-[65vh] sm:rounded-2xl rounded-t-[24px] shadow-2xl overflow-hidden border-t sm:border border-white/10 flex flex-col animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-4 duration-300">
             {/* Header */}
@@ -926,9 +1108,18 @@ function LibraryContent({ isSelectionMode, setIsSelectionMode }: { isSelectionMo
                 onClick={() => setShowFilterModal(false)}
                 className="w-full py-3 bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-black rounded-full hover:opacity-90 transition-opacity active:scale-[0.98]"
               >
-                Apply Filters
+                Done
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST */}
+      {toast && (
+        <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-[300] animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-[var(--md-sys-color-surface-container-high)] rounded-full px-5 py-3 shadow-lg border border-white/10">
+            <p className="text-white text-sm font-medium">{toast}</p>
           </div>
         </div>
       )}

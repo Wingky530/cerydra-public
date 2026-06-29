@@ -19,11 +19,12 @@ const url = canonicalUrl || Astro.url.pathname;
 const fullUrl = `https://cerydra.my.id${url}`;
 ---
 
-<html lang="en">
+<html lang="en" class="overflow-x-hidden">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <title>{title}</title>
+    <meta name="color-scheme" content="dark" />
     <meta name="description" content={defaultDescription} />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href={fullUrl} />
@@ -86,7 +87,7 @@ const fullUrl = `https://cerydra.my.id${url}`;
       ]
     })} />
   </head>
-  <body class="scrollbar-hide">
+  <body class="scrollbar-hide overflow-x-hidden w-full relative">
     <GlobalPlayer client:only="react" transition:persist="global-player" />
     <SpeedInsights />
     <slot />
@@ -97,27 +98,6 @@ const fullUrl = `https://cerydra.my.id${url}`;
       import '@material/web/button/text-button.js';
       import '@material/web/progress/circular-progress.js';
       import '@material/web/progress/linear-progress.js';
-    </script>
-    <script>
-      // Global error suppression for React hydration
-      const suppressError = (msg: any) => {
-        if (!msg) return false;
-        const str = String(msg).toLowerCase();
-        return str.includes('hydration') || str.includes('react error #418') || str.includes('react error #423');
-      };
-      
-      const originalError = console.error;
-      console.error = function(...args) {
-        if (suppressError(args[0])) return;
-        originalError.apply(console, args);
-      };
-
-      window.addEventListener('error', (e) => {
-        if (suppressError(e.message)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
-      });
     </script>
     <script>
       (function(){

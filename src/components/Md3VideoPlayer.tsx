@@ -180,7 +180,7 @@ function Md3CenterControls({ prevEp, nextEp, onPrev, onNext }: { prevEp?: string
       <div className="absolute inset-0 z-25 flex items-center justify-center gap-10 sm:gap-20 pointer-events-none transition-opacity duration-300 opacity-0 group-data-[visible]:opacity-100 prevent-hide">
         <div className="flex flex-col items-center justify-center w-20">
           <button
-            className={`flex flex-col items-center justify-center text-white cursor-pointer pointer-events-none group-data-[visible]:pointer-events-auto hover:scale-110 active:scale-90 transition-transform duration-150 ${!prevEp ? 'opacity-30 pointer-events-none' : ''}`}
+            className={`flex flex-col items-center justify-center text-white cursor-pointer pointer-events-none group-data-[visible]:pointer-events-auto hover:scale-[1.03] active:scale-[0.98] transition-transform duration-150 ${!prevEp ? 'opacity-30 pointer-events-none' : ''}`}
             onClick={(e) => { e.stopPropagation(); onPrev?.(); }}
             title="Previous Episode"
             disabled={!prevEp}
@@ -192,7 +192,7 @@ function Md3CenterControls({ prevEp, nextEp, onPrev, onNext }: { prevEp?: string
         </div>
 
         <button
-          className="flex items-center justify-center text-white cursor-pointer pointer-events-none group-data-[visible]:pointer-events-auto hover:scale-110 active:scale-90 transition-transform duration-150"
+          className="flex items-center justify-center text-white cursor-pointer pointer-events-none group-data-[visible]:pointer-events-auto hover:scale-[1.03] active:scale-[0.98] transition-transform duration-150"
           onClick={(e) => {
             e.stopPropagation();
             if (ended) { remote.seek(0); remote.play(); }
@@ -200,14 +200,14 @@ function Md3CenterControls({ prevEp, nextEp, onPrev, onNext }: { prevEp?: string
             else { remote.pause(); }
           }}
           title={ended ? 'Replay' : paused ? 'Play' : 'Pause'}
-          style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(61,217,224,0.3))' }}
+          style={{ filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.9))' }}
         >
           {ended ? <ReplayIcon size={64} /> : paused ? <PlayIcon size={64} /> : <PauseIcon size={64} />}
         </button>
 
         <div className="flex flex-col items-center justify-center w-20">
           <button
-            className={`flex flex-col items-center justify-center text-white cursor-pointer pointer-events-none group-data-[visible]:pointer-events-auto hover:scale-110 active:scale-90 transition-transform duration-150 ${!nextEp ? 'opacity-30 pointer-events-none' : ''}`}
+            className={`flex flex-col items-center justify-center text-white cursor-pointer pointer-events-none group-data-[visible]:pointer-events-auto hover:scale-[1.03] active:scale-[0.98] transition-transform duration-150 ${!nextEp ? 'opacity-30 pointer-events-none' : ''}`}
             onClick={(e) => { e.stopPropagation(); onNext?.(); }}
             title="Next Episode"
             disabled={!nextEp}
@@ -235,122 +235,98 @@ function Md3FullscreenOverlay({ animeTitle, episode }: { animeTitle?: string; ep
   );
 }
 
-function SpeedMenu() {
-  const { playbackRate } = useMediaStore();
-  const remote = useMediaRemote();
-  const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
-  return (
-    <Menu.Root>
-      <Menu.Button className="h-9 px-2.5 rounded-full text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95">
-        {playbackRate}x
-      </Menu.Button>
-      <Menu.Content placement="top end" className="z-50 min-w-24 rounded-xl border border-white/10 bg-black/90 p-1 text-white backdrop-blur-xl mb-2">
-        <Menu.RadioGroup value={String(playbackRate)} onChange={(value) => remote.changePlaybackRate(Number(value))}>
-          {speeds.map(speed => (
-            <Menu.Radio key={speed} value={String(speed)} className="cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold text-white/60 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white">
-              {speed}x
-            </Menu.Radio>
-          ))}
-        </Menu.RadioGroup>
-      </Menu.Content>
-    </Menu.Root>
-  );
-}
 
-function QualityMenu({ qualities, activeQuality, onQualityChange }: {
-  qualities: { label: string; idx: number }[];
+
+
+function SettingsMenu({ qualities, activeQuality, onQualityChange }: {
+  qualities?: { label: string; idx: number }[];
   activeQuality?: string;
   onQualityChange?: (idx: number) => void;
 }) {
-  if (!qualities || qualities.length === 0) return null;
-  const label = activeQuality || qualities[qualities.length - 1]?.label || 'Quality';
-  return (
-    <Menu.Root>
-      <Menu.Button className="h-9 px-2.5 rounded-full text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95">
-        {label}
-      </Menu.Button>
-      <Menu.Content placement="top end" className="z-50 min-w-24 rounded-xl border border-white/10 bg-black/90 p-1 text-white backdrop-blur-xl mb-2">
-        <Menu.RadioGroup value={activeQuality || ''} onChange={(val) => {
-          const q = qualities.find(q => q.label === val);
-          if (q) onQualityChange?.(q.idx);
-        }}>
-          {qualities.map(q => (
-            <Menu.Radio
-              key={q.idx}
-              value={q.label}
-              className="cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold text-white/60 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white"
-            >
-              {q.label}
-            </Menu.Radio>
-          ))}
-        </Menu.RadioGroup>
-      </Menu.Content>
-    </Menu.Root>
-  );
-}
-
-function NativeQualityMenu() {
-  const options = useVideoQualityOptions({ auto: 'Auto' });
-  const remote = useMediaRemote();
-
-  if (options.disabled || options.length <= 1) return null;
-
-  return (
-    <Menu.Root>
-      <Menu.Button className="h-9 px-2.5 rounded-full text-xs font-bold text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95 flex items-center gap-1.5" title="Quality">
-        <SettingsIcon />
-        <span>{options.selectedQuality?.height ? `${options.selectedQuality.height}p` : 'Auto'}</span>
-      </Menu.Button>
-      <Menu.Content placement="top end" className="z-50 min-w-24 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-black/90 p-1 text-white backdrop-blur-xl mb-2">
-        <Menu.RadioGroup value={options.selectedValue} onChange={(val) => {
-          const opt = options.find(o => o.value === val);
-          if (opt) opt.select();
-        }}>
-          {options.map(opt => (
-            <Menu.Radio
-              key={opt.value}
-              value={opt.value}
-              className="cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold text-white/60 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white flex items-center justify-between"
-            >
-              <span>{opt.label}</span>
-              {opt.quality?.bitrate ? <span className="text-[10px] opacity-50 ml-3">{Math.round(opt.quality.bitrate / 1000)}kbps</span> : null}
-            </Menu.Radio>
-          ))}
-        </Menu.RadioGroup>
-      </Menu.Content>
-    </Menu.Root>
-  );
-}
-
-function CaptionsMenu() {
-  const options = useCaptionOptions({ off: 'Off' });
   const store = useMediaStore();
-  
-  if (options.disabled || options.length <= 1) return null;
-  
-  const currentLabel = store.textTrack?.label || 'Off';
+  const remote = useMediaRemote();
+  const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+  const captionOptions = useCaptionOptions({ off: 'Off' });
+  const qualityOptions = useVideoQualityOptions({ auto: 'Auto' });
 
   return (
     <Menu.Root>
-      <Menu.Button className={`h-9 px-2.5 rounded-full text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 ${store.textTrack ? 'text-[var(--md-sys-color-primary)] bg-[var(--md-sys-color-primary)]/10 hover:bg-[var(--md-sys-color-primary)]/20' : 'text-white/60 hover:text-white hover:bg-white/10'}`} title="Subtitles">
-        <CcIcon />
+      <Menu.Button className="w-11 h-11 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors" title="Settings">
+        <SettingsIcon />
       </Menu.Button>
-      <Menu.Content placement="top end" className="z-50 min-w-32 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-black/90 p-1 text-white backdrop-blur-xl mb-2">
-        <Menu.RadioGroup value={options.selectedValue} onChange={(val) => {
-          const opt = options.find(o => o.value === val);
-          if (opt) opt.select();
-        }}>
-          {options.map(opt => (
-            <Menu.Radio
-              key={opt.value}
-              value={opt.value}
-              className="cursor-pointer rounded-lg px-3 py-2 text-xs font-semibold text-white/60 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white"
-            >
-              {opt.label}
-            </Menu.Radio>
-          ))}
-        </Menu.RadioGroup>
+      <Menu.Content placement="top end" className="z-50 w-[280px] max-h-[70vh] overflow-y-auto custom-scrollbar rounded-2xl border border-white/10 bg-[var(--md-sys-color-surface-container-high)] p-4 text-white shadow-2xl mb-2 flex flex-col gap-6">
+        
+        {/* Quality */}
+        <div className="flex flex-col gap-2">
+          <div className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider">Quality</div>
+          {qualities && qualities.length > 0 ? (
+            <Menu.RadioGroup value={activeQuality || ''} onChange={(val) => {
+              const q = qualities.find(q => q.label === val);
+              if (q) onQualityChange?.(q.idx);
+            }} className="flex flex-wrap gap-1.5">
+              {qualities.map(q => (
+                <Menu.Radio key={q.idx} value={q.label} className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-white/60 bg-white/5 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white transition-colors">
+                  {q.label}
+                </Menu.Radio>
+              ))}
+            </Menu.RadioGroup>
+          ) : !qualityOptions.disabled && qualityOptions.length > 1 ? (
+            <Menu.RadioGroup value={qualityOptions.selectedValue} onChange={(val) => {
+              const opt = qualityOptions.find(o => o.value === val);
+              if (opt) opt.select();
+            }} className="flex flex-wrap gap-1.5">
+              {qualityOptions.map(opt => (
+                <Menu.Radio key={opt.value} value={opt.value} className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-white/60 bg-white/5 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white transition-colors flex items-center justify-between">
+                  <span>{opt.label}</span>
+                </Menu.Radio>
+              ))}
+            </Menu.RadioGroup>
+          ) : (
+            <span className="text-xs text-white/40 font-medium px-1">Auto</span>
+          )}
+        </div>
+
+        {/* Speed */}
+        <div className="flex flex-col gap-2">
+          <div className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider">Speed</div>
+          <Menu.RadioGroup value={String(store.playbackRate)} onChange={(val) => remote.changePlaybackRate(Number(val))} className="flex flex-wrap gap-1.5">
+            {speeds.map(speed => (
+              <Menu.Radio key={speed} value={String(speed)} className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-white/60 bg-white/5 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white transition-colors">
+                {speed}x
+              </Menu.Radio>
+            ))}
+          </Menu.RadioGroup>
+        </div>
+
+        {/* Captions */}
+        {!captionOptions.disabled && captionOptions.length > 1 && (
+          <div className="flex flex-col gap-2">
+            <div className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider">Captions</div>
+            <Menu.RadioGroup value={captionOptions.selectedValue} onChange={(val) => {
+              const opt = captionOptions.find(o => o.value === val);
+              if (opt) opt.select();
+            }} className="flex flex-wrap gap-1.5">
+              {captionOptions.map(opt => (
+                <Menu.Radio key={opt.value} value={opt.value} className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-white/60 bg-white/5 data-[checked]:bg-[var(--md-sys-color-primary)]/15 data-[checked]:text-[var(--md-sys-color-primary)] hover:bg-white/10 hover:text-white transition-colors">
+                  {opt.label}
+                </Menu.Radio>
+              ))}
+            </Menu.RadioGroup>
+          </div>
+        )}
+
+        {/* Keyboard Shortcuts */}
+        <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
+          <div className="text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider mb-1">Keyboard Shortcuts</div>
+          <div className="grid grid-cols-[1fr_auto] gap-y-2.5 gap-x-4 text-xs">
+            <span className="text-white/70">Play / Pause</span><kbd className="font-mono bg-white/10 px-1.5 py-0.5 rounded text-[var(--md-sys-color-primary)] font-bold">Space</kbd>
+            <span className="text-white/70">Seek -10s / +10s</span><kbd className="font-mono bg-white/10 px-1.5 py-0.5 rounded text-[var(--md-sys-color-primary)] font-bold">J / L</kbd>
+            <span className="text-white/70">Mute</span><kbd className="font-mono bg-white/10 px-1.5 py-0.5 rounded text-[var(--md-sys-color-primary)] font-bold">M</kbd>
+            <span className="text-white/70">Fullscreen</span><kbd className="font-mono bg-white/10 px-1.5 py-0.5 rounded text-[var(--md-sys-color-primary)] font-bold">F</kbd>
+          </div>
+        </div>
+
       </Menu.Content>
     </Menu.Root>
   );
@@ -377,7 +353,7 @@ function AutonextToggle() {
   return (
     <button
       onClick={toggle}
-      className={`w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90 ${enabled ? 'text-[var(--md-sys-color-primary)]' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
+      className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors ${enabled ? 'text-[var(--md-sys-color-primary)]' : 'text-white/60 hover:text-white hover:bg-white/10'}`}
       title={enabled ? "Autoplay is on" : "Autoplay is off"}
     >
       <AutoplayIcon />
@@ -589,7 +565,7 @@ function Md3BottomBar({ isStretch, setStretch, qualities, activeQuality, onQuali
         <div className="flex items-center justify-between px-3 pointer-events-auto prevent-hide">
           <div className="flex items-center gap-0.5 min-w-0">
             <div className="relative flex items-center" onMouseEnter={() => setShowVolume(true)} onMouseLeave={() => setShowVolume(false)}>
-              <button onClick={() => muted ? remote.unmute() : remote.mute()} className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-90" title="Mute">
+              <button onClick={() => muted ? remote.unmute() : remote.mute()} className="w-11 h-11 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors" title="Mute">
                 {muted || volume === 0 ? <VolumeMuteIcon /> : <VolumeOnIcon />}
               </button>
               <div className="overflow-hidden transition-all duration-200" style={{ width: showVolume ? 72 : 0, opacity: showVolume ? 1 : 0, marginLeft: showVolume ? 4 : 0 }}>
@@ -611,19 +587,13 @@ function Md3BottomBar({ isStretch, setStretch, qualities, activeQuality, onQuali
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
             <AutonextToggle />
-            {qualities && qualities.length > 0 ? (
-              <QualityMenu qualities={qualities} activeQuality={activeQuality} onQualityChange={onQualityChange} />
-            ) : (
-              <NativeQualityMenu />
-            )}
-            <CaptionsMenu />
-            <SpeedMenu />
-            <PIPButton className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-90" title="Picture in picture">
+<SettingsMenu qualities={qualities} activeQuality={activeQuality} onQualityChange={onQualityChange} />
+            <PIPButton className="w-11 h-11 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors" title="Picture in picture">
               <PipIcon />
             </PIPButton>
             {canFullscreen && (
               <div className="relative flex items-center">
-                <button onClick={() => fullscreen ? remote.exitFullscreen() : remote.enterFullscreen()} className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-90" title="Fullscreen">
+                <button onClick={() => fullscreen ? remote.exitFullscreen() : remote.enterFullscreen()} className="w-11 h-11 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors" title="Fullscreen">
                   {fullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
                 </button>
                 {fullscreen && (
@@ -632,7 +602,7 @@ function Md3BottomBar({ isStretch, setStretch, qualities, activeQuality, onQuali
                       setStretch(!isStretch);
                       showToast(!isStretch ? 'Stretch Video' : 'Fit Video');
                     }}
-                    className="absolute -top-12 left-0 w-9 h-9 flex items-center justify-center rounded-full bg-black/50 text-white/80 hover:text-white hover:bg-white/20 transition-all active:scale-90 pointer-events-auto"
+                    className="absolute -top-12 left-0 w-11 h-11 flex items-center justify-center rounded-full bg-black/50 text-white/80 hover:text-white hover:bg-white/20 transition-colors pointer-events-auto"
                     title={isStretch ? "Fit Video" : "Stretch Video"}
                   >
                     {isStretch ? <FitIcon /> : <StretchIcon />}
@@ -711,7 +681,7 @@ function FirstPlayHint() {
       }}
       title="Play"
     >
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-white/90 transition-transform duration-150 active:scale-95">
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-white/90 transition-transform duration-150 active:scale-[0.98]">
         <PlayIcon size={38} />
       </span>
     </button>
@@ -783,7 +753,7 @@ function PlayerChrome({ animeTitle, episode, locked, setLocked, prevEp, nextEp, 
                   setLocked(newLocked);
                   showToast(newLocked ? 'Screen Locked' : 'Screen Unlocked');
                 }}
-                className={`pointer-events-auto w-10 h-10 flex items-center justify-center transition-all active:scale-90 ${locked ? 'text-[var(--md-sys-color-primary)] drop-shadow-[0_2px_8px_rgba(61,217,224,0.4)]' : 'text-white/70 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]'}`}
+                className={`pointer-events-auto w-10 h-10 flex items-center justify-center transition-colors ${locked ? 'text-[var(--md-sys-color-primary)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]' : 'text-white/70 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]'}`}
                 title={locked ? 'Unlock controls' : 'Lock controls'}
               >
                 <LockIcon locked={locked} />

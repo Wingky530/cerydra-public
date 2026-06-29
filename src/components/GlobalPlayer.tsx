@@ -97,6 +97,24 @@ export default function GlobalPlayer() {
     };
   }, []);
 
+  useEffect(() => {
+    if (state.isOpen && !state.isMinimized) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      // Prevent mobile scroll bounce chaining
+      document.body.classList.add('overscroll-none', 'touch-none');
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.classList.remove('overscroll-none', 'touch-none');
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.classList.remove('overscroll-none', 'touch-none');
+    };
+  }, [state.isOpen, state.isMinimized]);
+
   const hideNav = pathname.startsWith('/watch');
   const bottomClasses = hideNav 
     ? 'bottom-6 md:bottom-8' 
@@ -119,47 +137,19 @@ export default function GlobalPlayer() {
     }
   };
 
-  const touchStartY = useRef(0);
-  const touchStartX = useRef(0);
-  const isAtTopRef = useRef(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartX.current = e.touches[0].clientX;
-    const scrollContainer = document.querySelector('.custom-scrollbar');
-    isAtTopRef.current = !scrollContainer || scrollContainer.scrollTop <= 0;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const diffY = e.changedTouches[0].clientY - touchStartY.current;
-    const diffX = e.changedTouches[0].clientX - touchStartX.current;
-    
-    // Check if it's a vertical swipe
-    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
-      if (state.isMinimized && diffY < 0) {
-        // Swipe UP when minimized -> Maximize
-        playerStore.setKey('isMinimized', false);
-      } else if (!state.isMinimized && diffY > 0 && isAtTopRef.current) {
-        // Swipe DOWN when maximized and at top -> Minimize
-        handleMinimize();
-      }
-    }
-  };
 
   return (
     <QueryClientProvider client={queryClient}>
       <div id="global-player-root" className={!state.isOpen ? 'hidden' : ''}>
         {state.isOpen && state.animeId && state.episode && (
           <div 
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
             className={`fixed z-[9999] transition-all duration-300 overflow-hidden ${
               state.isMinimized 
                 ? `${bottomClasses} top-auto left-1/2 -translate-x-1/2 w-[calc(100%-24px)] md:w-[460px] h-[68px] md:h-[72px] rounded-2xl border border-white/10 bg-[var(--md-sys-color-surface-container)] flex flex-row shadow-[0_20px_60px_rgba(0,0,0,0.6)] touch-none` 
                 : 'inset-0 w-full h-full bg-[var(--md-sys-color-background)] left-0 translate-x-0 rounded-none'
             }`}>
             
-            <div className={`shrink-0 relative ${state.isMinimized ? 'h-full aspect-video pointer-events-none z-0 bg-black' : 'w-full h-full overflow-y-auto custom-scrollbar z-0'}`}>
+            <div className={`shrink-0 relative ${state.isMinimized ? 'h-full aspect-video pointer-events-none z-0 bg-black' : 'w-full h-full overflow-y-auto custom-scrollbar z-0 overscroll-none touch-auto'}`}>
                {import.meta.env.DEV && navType && state.isMinimized && (
                  <div className={`absolute top-1 left-1 z-[99999] px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider pointer-events-none ${
                    navType === 'VT' ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'

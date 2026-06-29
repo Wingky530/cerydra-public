@@ -6,6 +6,7 @@ import EpisodeList from '../components/EpisodeList';
 import { useLibrary } from '../hooks/useLibrary';
 import { useWatchHistory } from '../hooks/useWatchHistory';
 import { getWatchUrl } from '../lib/routing';
+import AnimeCard from '../components/AnimeCard';
 import React from 'react';
 
 // --- Icons ---
@@ -71,6 +72,8 @@ interface ShowData {
 function AnimeDetailContent({ animeId }: { animeId: string }) {
   const { toggleLibrary, isInLibrary } = useLibrary();
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'episodes' | 'overview'>('episodes');
+  const [showAllChars, setShowAllChars] = useState(false);
   useEffect(() => setMounted(true), []);
 
   // Identify if URL uses anilistId (numeric)
@@ -214,8 +217,23 @@ function AnimeDetailContent({ animeId }: { animeId: string }) {
         popularity
         format
         genres
+        trailer { id site thumbnail }
+        recommendations(sort: RATING_DESC, perPage: 12) {
+          edges {
+            node {
+              mediaRecommendation {
+                id
+                title { romaji english }
+                coverImage { large }
+                averageScore
+                format
+                episodes
+              }
+            }
+          }
+        }
         studios(isMain: true) { edges { node { name } } }
-        characters(sort: ROLE, perPage: 15) {
+        characters(sort: ROLE, perPage: 24) {
           edges {
             role
             node { name { full } image { large } }
@@ -352,7 +370,28 @@ function AnimeDetailContent({ animeId }: { animeId: string }) {
         
         {/* Back Button */}
         <button 
-          onClick={() => window.history.length > 1 ? window.history.back() : window.location.href = '/'}
+          onClick={async () => {
+            try {
+              const histStr = sessionStorage.getItem('cerydra_history');
+              if (histStr) {
+                const hist = JSON.parse(histStr);
+                let target = '/';
+                for (let i = hist.length - 2; i >= 0; i--) {
+                  if (!hist[i].startsWith('/watch') && !hist[i].startsWith('/anime/')) {
+                    target = hist[i];
+                    break;
+                  }
+                }
+                const { navigate } = await import('astro:transitions/client');
+                navigate(target);
+              } else {
+                const { navigate } = await import('astro:transitions/client');
+                navigate('/');
+              }
+            } catch (e) {
+              window.location.href = '/';
+            }
+          }}
           className="absolute top-4 left-4 md:top-6 md:left-6 z-[60] w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-[var(--md-sys-color-surface-container)] text-white hover:bg-[var(--md-sys-color-primary)] transition-colors shadow-lg border border-white/10"
           aria-label="Go Back"
         >
@@ -377,7 +416,7 @@ function AnimeDetailContent({ animeId }: { animeId: string }) {
             <img 
               src={posterImg} 
               alt={displayTitle} 
-              className="w-full flex-1 aspect-[2/3] md:aspect-auto object-cover md:rounded-2xl md:shadow-[0_24px_48px_rgba(0,0,0,0.5)] md:border md:border-white/10"
+              className="w-full flex-1 aspect-[2/3] md:aspect-auto object-cover md:rounded-2xl md:border md:border-white/10"
             />
             {/* Gradient overlay for mobile text legibility */}
             <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[var(--md-sys-color-background)] via-[var(--md-sys-color-background)]/80 to-[var(--md-sys-color-background)]/0 md:hidden pointer-events-none" />
@@ -437,10 +476,10 @@ function AnimeDetailContent({ animeId }: { animeId: string }) {
               {episodes.length > 0 && allAnimeId ? (
                 <div className="w-full sm:w-auto">
                   <a href={`${getWatchUrl(baseAnilistId || allAnimeId, latestWatchedEp || episodes[0], displayTitle)}`} className="block">
-                    <md-filled-button class="w-full flex items-center justify-center" style={{ '--md-filled-button-container-height': '48px', '--md-filled-button-label-text-size': '16px' } as any}>
-                      <div slot="icon" className="flex items-center justify-center"><PlayArrowIcon /></div>
-                      {latestWatchedEp ? `Lanjut ke Ep. ${latestWatchedEp}` : 'Watch Episode 1'}
-                    </md-filled-button>
+                    <button className="w-full flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-bold hover:opacity-90 transition-opacity">
+                      <PlayArrowIcon />
+                      {latestWatchedEp ? `Continue Ep. ${latestWatchedEp}` : 'Watch Episode 1'}
+                    </button>
                   </a>
                   {latestWatchedEp && episodeProgress[latestWatchedEp] !== undefined && episodeProgress[latestWatchedEp] > 0 && (
                     <div className="mt-2 flex items-center gap-2">
@@ -486,92 +525,159 @@ function AnimeDetailContent({ animeId }: { animeId: string }) {
       <div className="px-6 md:px-12 lg:px-24 max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
         
         {/* Left Content Area */}
-        <div className="flex-1 min-w-0 flex flex-col gap-10">
+        <div className="flex-1 min-w-0 flex flex-col gap-6 md:gap-8 mt-4 lg:mt-0">
           
-          {/* Synopsis */}
-          {displayData?.synopsis && (
-            <section>
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-white">
-                Synopsis
-                <div className="flex-1 h-px bg-white/10" />
-              </h3>
-              <p className="text-[var(--md-sys-color-on-surface-variant)] leading-relaxed text-base md:text-lg whitespace-pre-line">
-                {displayData.synopsis.replace('[Written by MAL Rewrite]', '').trim()}
-              </p>
-            </section>
-          )}
+          {/* Tabs */}
+          <div className="flex justify-center items-center gap-6 md:gap-8 border-b border-white/10 overflow-x-auto custom-scrollbar">
+            {['episodes', 'overview'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`pb-3 text-sm md:text-base font-bold capitalize transition-colors whitespace-nowrap border-b-2 ${
+                  activeTab === tab 
+                    ? 'text-[var(--md-sys-color-primary)] border-[var(--md-sys-color-primary)]' 
+                    : 'text-[var(--md-sys-color-on-surface-variant)] border-transparent hover:text-white'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
-          {/* Characters Section */}
-          {displayData?.characters && displayData.characters.length > 0 && (
-            <section>
-              <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-white">
-                Characters
-                <div className="flex-1 h-px bg-white/10" />
-              </h3>
-              <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
-                {displayData.characters.slice(0, 15).map((charData: any, idx: number) => {
-                  const char = charData.character;
-                  return (
-                    <div key={idx} className="shrink-0 w-[90px] md:w-[100px] flex flex-col items-center gap-2 snap-start group">
-                      <div className="w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-full overflow-hidden border-2 border-white/10 group-hover:border-[var(--md-sys-color-primary)] transition-colors shadow-md bg-black/20">
-                        <img 
-                          src={char.images?.webp?.image_url} 
-                          alt={char.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="text-center w-full px-1">
-                        <p className="text-[11px] md:text-xs font-bold text-white line-clamp-2 leading-tight">{char.name}</p>
-                        <p className="text-[9px] md:text-[10px] text-[var(--md-sys-color-on-surface-variant)] line-clamp-1 mt-0.5">{charData.role}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Tab Content */}
+          <div className="flex flex-col gap-10 min-h-[400px]">
+            {activeTab === 'episodes' && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="w-full">
+                  {allAnimeId ? (
+                    <EpisodeList animeId={baseAnilistId ? String(baseAnilistId) : allAnimeId} animeName={displayTitle} episodes={episodes} episodeProgress={episodeProgress} />
+                  ) : (
+                    <div className="text-center text-[var(--md-sys-color-on-surface-variant)] py-4">No episodes found or upcoming.</div>
+                  )}
+                </div>
               </div>
-            </section>
-          )}
-          
-          {/* Episodes List Section */}
-          <section id="episodes">
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-3 text-white">
-              Episodes ({episodes.length})
-              <div className="flex-1 h-px bg-white/10" />
-            </h3>
-            <div className="bg-[var(--md-sys-color-surface-container)] rounded-[var(--md-sys-shape-corner-large)] border border-white/5 p-4 md:p-6">
-              {allAnimeId ? (
-                <EpisodeList animeId={baseAnilistId ? String(baseAnilistId) : allAnimeId} animeName={displayTitle} episodes={episodes} episodeProgress={episodeProgress} />
-              ) : (
-                <div className="text-center text-[var(--md-sys-color-on-surface-variant)] py-4">No episodes found or upcoming.</div>
-              )}
-            </div>
-          </section>
+            )}
 
+            {activeTab === 'overview' && (
+              <div className="flex flex-col gap-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {/* Synopsis */}
+                {displayData?.synopsis && (
+                  <section>
+                    <p className="text-[var(--md-sys-color-on-surface-variant)] leading-relaxed text-sm md:text-base whitespace-pre-line">
+                      {displayData.synopsis.replace('[Written by MAL Rewrite]', '').trim()}
+                    </p>
+                  </section>
+                )}
+
+                {/* Trailer */}
+                {anilistData?.trailer?.id && anilistData?.trailer?.site === 'youtube' && (
+                  <section>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-3 text-white">
+                      Trailer
+                      <div className="flex-1 h-px bg-white/10" />
+                    </h3>
+                    <div className="w-full aspect-video rounded-xl overflow-hidden bg-black/50 border border-white/5">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${anilistData.trailer.id}`}
+                        title="Trailer"
+                        className="w-full h-full"
+                        allowFullScreen
+                      />
+                    </div>
+                  </section>
+                )}
+
+                {/* Characters */}
+                {displayData?.characters && displayData.characters.length > 0 && (
+                  <section>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-3 text-white">
+                      Characters
+                      <div className="flex-1 h-px bg-white/10" />
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {(showAllChars ? displayData.characters : displayData.characters.slice(0, 8)).map((charData: any, idx: number) => {
+                        const char = charData.character;
+                        return (
+                          <div key={idx} className="flex items-center gap-3 bg-[var(--md-sys-color-surface-container)] p-2 rounded-xl border border-white/5">
+                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden shrink-0 bg-black/20">
+                              <img 
+                                src={char.images?.webp?.image_url} 
+                                alt={char.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs md:text-sm font-bold text-white truncate">{char.name}</p>
+                              <p className="text-[10px] md:text-[11px] text-[var(--md-sys-color-on-surface-variant)] truncate mt-0.5">{charData.role}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {displayData.characters.length > 8 && (
+                      <button 
+                        onClick={() => setShowAllChars(!showAllChars)}
+                        className="mt-4 w-full py-3 text-sm font-bold text-[var(--md-sys-color-primary)] bg-[var(--md-sys-color-surface-container)] hover:bg-[var(--md-sys-color-surface-container-high)] rounded-xl transition-colors border border-white/5"
+                      >
+                        {showAllChars ? 'Show Less Characters' : `View All ${displayData.characters.length} Characters`}
+                      </button>
+                    )}
+                  </section>
+                )}
+
+                {/* Recommendations */}
+                {anilistData?.recommendations?.edges?.length > 0 && (
+                  <section>
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-3 text-white">
+                      Recommendations
+                      <div className="flex-1 h-px bg-white/10" />
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
+                      {anilistData.recommendations.edges.map((edge: any) => {
+                        const rec = edge.node.mediaRecommendation;
+                        if (!rec) return null;
+                        return (
+                          <AnimeCard
+                            key={rec.id}
+                            id={String(rec.id)}
+                            name={rec.title.english || rec.title.romaji}
+                            thumbnail={rec.coverImage?.large}
+                            href={getWatchUrl(rec.id, 1, rec.title.english || rec.title.romaji)}
+                            score={rec.averageScore ? (rec.averageScore / 10).toFixed(1) : undefined}
+                            formatLabel={rec.format}
+                            episodeCount={rec.episodes}
+                            showPopularity={false}
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Sidebar (Stats & Info) */}
         <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-6">
           
-          {/* Stats Bento Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-1 bg-[var(--md-sys-color-surface-container)] rounded-[var(--md-sys-shape-corner-large)] p-4 border border-white/5 flex flex-col items-center justify-center text-center transition-colors hover:bg-[var(--md-sys-color-surface-container-high)]">
-              <StarIcon />
-              <p className="text-2xl font-black text-white mt-2 mb-0">{displayData?.score || 'N/A'}</p>
-              <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold">Score</p>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-y-6 gap-x-4 bg-[var(--md-sys-color-surface-container)] rounded-[var(--md-sys-shape-corner-large)] py-6 px-4 border border-white/5">
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold mb-1 flex items-center gap-1.5"><StarIcon /> Score</span>
+              <span className="text-2xl font-black text-white">{displayData?.score || 'N/A'}</span>
             </div>
-            <div className="col-span-1 bg-[var(--md-sys-color-surface-container)] rounded-[var(--md-sys-shape-corner-large)] p-4 border border-white/5 flex flex-col items-center justify-center text-center transition-colors hover:bg-[var(--md-sys-color-surface-container-high)]">
-              <TrophyIcon />
-              <p className="text-2xl font-black text-white mt-2 mb-0">#{displayData?.rank || '?'}</p>
-              <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold">Rank</p>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold mb-1 flex items-center gap-1.5"><TrophyIcon /> Rank</span>
+              <span className="text-2xl font-black text-white">#{displayData?.rank || '?'}</span>
             </div>
-            <div className="col-span-1 bg-[var(--md-sys-color-surface-container)] rounded-[var(--md-sys-shape-corner-large)] p-4 border border-white/5 flex flex-col items-center justify-center text-center transition-colors hover:bg-[var(--md-sys-color-surface-container-high)]">
-              <TrendingIcon />
-              <p className="text-2xl font-black text-white mt-2 mb-0">#{displayData?.popularity || '?'}</p>
-              <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold">Popularity</p>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold mb-1 flex items-center gap-1.5"><TrendingIcon /> Popularity</span>
+              <span className="text-2xl font-black text-white">#{displayData?.popularity || '?'}</span>
             </div>
-            <div className="col-span-1 bg-[var(--md-sys-color-surface-container)] rounded-[var(--md-sys-shape-corner-large)] p-4 border border-white/5 flex flex-col items-center justify-center text-center transition-colors hover:bg-[var(--md-sys-color-surface-container-high)]">
-              <UsersIcon />
-              <p className="text-xl font-black text-white mt-2 mb-0">{formatNumber(displayData?.members)}</p>
-              <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold">Members</p>
+            <div className="flex flex-col items-center text-center">
+              <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase tracking-wider font-bold mb-1 flex items-center gap-1.5"><UsersIcon /> Members</span>
+              <span className="text-2xl font-black text-white">{formatNumber(displayData?.members)}</span>
             </div>
           </div>
 

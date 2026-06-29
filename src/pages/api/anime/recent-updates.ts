@@ -49,6 +49,7 @@ export const GET: APIRoute = async () => {
       body: JSON.stringify({
         query: ANILIST_RECENT_QUERY,
       }),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!res.ok) throw new Error(`AniList error: ${res.status}`);

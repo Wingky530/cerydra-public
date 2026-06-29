@@ -101,18 +101,20 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
   if (showSkeleton) {
     return (
       <SkeletonTheme baseColor="var(--md-sys-color-surface-container-high)" highlightColor="var(--md-sys-color-surface-variant)">
-        <div className="relative overflow-hidden rounded-2xl md:rounded-[var(--md-sys-shape-corner-large)] bg-[var(--md-sys-color-surface-container-high)] p-6 md:p-8 mb-10 flex flex-col md:flex-row gap-6 md:gap-8 items-stretch md:items-center mt-8">
-          <div className="w-full md:w-auto md:flex-shrink-0">
-            <Skeleton className="w-full md:w-[180px] aspect-[2/3] rounded-xl" />
-          </div>
-          <div className="flex-1 flex flex-col gap-4">
-            <Skeleton height={48} width="80%" />
-            <div className="flex gap-2">
-              <Skeleton width={60} height={24} borderRadius={9999} />
-              <Skeleton width={70} height={24} borderRadius={9999} />
+        <div className="relative w-full h-[40vh] min-h-[300px] max-h-[450px] overflow-hidden bg-[var(--md-sys-color-surface-container-high)] flex items-end">
+          <div className="max-w-7xl mx-auto w-full px-4 md:px-8 pb-6 md:pb-8 flex flex-row items-stretch justify-between gap-4 md:gap-8">
+            <div className="flex-1 flex flex-col items-start justify-center gap-4 py-1">
+              <Skeleton height={48} width="80%" className="max-w-[300px]" />
+              <div className="flex gap-2">
+                <Skeleton width={60} height={24} borderRadius={9999} />
+                <Skeleton width={70} height={24} borderRadius={9999} />
+              </div>
+              <Skeleton count={2} width="90%" />
+              <Skeleton width={120} height={40} borderRadius={9999} />
             </div>
-            <Skeleton count={3} />
-            <Skeleton width={120} height={40} borderRadius={8} />
+            <div className="flex flex-col shrink-0 self-center w-[110px] sm:w-[140px] md:w-[180px] z-10">
+              <Skeleton className="w-full aspect-[2/3] rounded-xl" />
+            </div>
           </div>
         </div>
       </SkeletonTheme>
@@ -129,7 +131,7 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
   const genres = heroAnime.genres || [];
 
   return (
-    <div className="relative w-full h-[55vh] md:h-[65vh] min-h-[450px] max-h-[700px] overflow-hidden group">
+    <div className="relative w-full h-[40vh] min-h-[300px] max-h-[450px] overflow-hidden group">
       {/* Background Poster */}
       <div className="absolute inset-0">
         <img
@@ -138,47 +140,31 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
           className="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-[10s] ease-out"
         />
         {/* Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--md-sys-color-background)] via-[var(--md-sys-color-background)]/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--md-sys-color-background)] via-[var(--md-sys-color-background)]/80 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--md-sys-color-background)] via-[var(--md-sys-color-background)]/50 to-transparent md:w-3/4" />
       </div>
 
       {/* Content Area */}
       <div className="absolute inset-0 flex items-end">
-        <div className="max-w-7xl mx-auto w-full px-4 md:px-8 pb-8 md:pb-12 flex flex-col md:flex-row gap-6 md:gap-10 items-end">
+        <div className="max-w-7xl mx-auto w-full px-4 md:px-8 pb-6 md:pb-8 flex flex-row items-stretch justify-between gap-4 md:gap-8">
           
-          {/* Small Poster (Desktop Only) */}
-          <div className="hidden md:block w-[180px] lg:w-[220px] flex-shrink-0 relative group/poster rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-            <a
-              href={getAnimeUrl(heroAnime.id, title)}
-              onClick={handleNavigate}
-              className="block relative w-full aspect-[2/3]"
-            >
-              <img
-                src={getImageUrl(heroAnime.coverImage?.extraLarge || '')}
-                alt={title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover/poster:scale-105"
-              />
-              <div className="absolute inset-0 bg-[var(--md-sys-color-on-surface)] opacity-0 group-hover/poster:opacity-[0.08] transition-opacity pointer-events-none" />
-            </a>
-          </div>
-
-          {/* Details */}
-          <div className="flex-1 flex flex-col gap-3 md:gap-4 max-w-3xl relative z-10 pb-2 md:pb-4">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white line-clamp-2 md:line-clamp-3 leading-tight tracking-tight drop-shadow-lg">
+          {/* Left Side: Typography */}
+          <div className="flex-1 flex flex-col items-start justify-center text-left w-full md:max-w-[60%] py-1 relative z-10">
+            <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white line-clamp-2 md:line-clamp-2 leading-tight tracking-tight drop-shadow-lg mb-1">
               {title}
             </h1>
             
-            <div className="flex items-center gap-3 flex-wrap drop-shadow-md">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap drop-shadow-md mb-1">
               {heroAnime.averageScore && (
                 <div className="flex items-center gap-1 text-white/90">
                   <StarIcon />
-                  <span className="text-sm md:text-base font-bold">{(heroAnime.averageScore / 10).toFixed(1)}</span>
+                  <span className="text-xs md:text-base font-bold">{(heroAnime.averageScore / 10).toFixed(1)}</span>
                 </div>
               )}
               {heroAnime.episodes && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                  <span className="text-sm md:text-base font-medium text-white/80">
+                  <span className="text-xs md:text-base font-medium text-white/80">
                     {heroAnime.episodes} Episodes
                   </span>
                 </>
@@ -186,7 +172,7 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
               {heroAnime.status && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                  <span className={`text-xs md:text-sm font-bold uppercase px-2 py-0.5 rounded ${
+                  <span className={`text-[10px] md:text-sm font-bold uppercase px-1.5 md:px-2 py-0.5 rounded ${
                     heroAnime.status === 'RELEASING' 
                       ? 'bg-[var(--md-sys-color-primary)]/90 text-[var(--md-sys-color-on-primary)]'
                       : 'bg-white/20 text-white'
@@ -199,11 +185,11 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
 
             {/* Genre badges */}
             {genres.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-1">
-                {genres.slice(0, 4).map((g: string, idx: number) => (
+              <div className="flex flex-wrap gap-1.5 md:gap-2 mb-2">
+                {genres.slice(0, 3).map((g: string, idx: number) => (
                   <span
                     key={idx}
-                    className="text-[11px] md:text-xs font-bold px-3 py-1 bg-[var(--md-sys-color-surface-container)] text-white/90 rounded-full border border-white/10 shadow-sm"
+                    className="text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 bg-[var(--md-sys-color-surface-container)] text-white/90 rounded-full border border-white/10 shadow-sm"
                   >
                     {g}
                   </span>
@@ -212,20 +198,20 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
             )}
 
             {/* Synopsis */}
-            <p className="text-sm md:text-base text-white/70 line-clamp-3 md:line-clamp-4 leading-relaxed max-w-2xl mt-1 drop-shadow-md">
+            <p className="text-[11px] sm:text-xs md:text-sm text-white/70 line-clamp-2 leading-relaxed max-w-2xl drop-shadow-md mb-2">
               {synopsis}
             </p>
 
             {/* Watch button */}
-            <div className="pt-4 flex gap-3">
+            <div className="mt-1 flex gap-3">
               <a
                 href={getAnimeUrl(heroAnime.id, title)}
                 onClick={handleNavigate}
-                className="inline-flex items-center gap-2 px-6 md:px-8 py-3 bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] rounded-full font-black text-sm md:text-base tracking-wide transition-all duration-300 hover:shadow-[0_0_20px_var(--md-sys-color-primary)] hover:bg-white active:scale-95 group"
+                className="inline-flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] rounded-full font-black text-xs md:text-sm tracking-wide transition-all duration-300 hover:shadow-[0_4px_12px_var(--md-sys-color-primary)] hover:brightness-110 active:scale-95 group"
               >
                 {isNavigating ? (
                   <>
-                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg className="w-4 h-4 md:w-5 md:h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />
                       <path d="M12 2a10 10 0 0 1 10 10" />
                     </svg>
@@ -233,7 +219,7 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
                   </>
                 ) : (
                   <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                     WATCH NOW
@@ -241,6 +227,22 @@ export default function GenreHero({ genre, allAnimeData, isPending }: GenreHeroP
                 )}
               </a>
             </div>
+          </div>
+
+          {/* Right Side: Poster */}
+          <div className="flex flex-col shrink-0 self-center w-[110px] sm:w-[140px] md:w-[180px] relative z-10 shadow-2xl ring-1 ring-white/10 rounded-xl overflow-hidden group/poster">
+            <a
+              href={getAnimeUrl(heroAnime.id, title)}
+              onClick={handleNavigate}
+              className="block relative w-full aspect-[2/3]"
+            >
+              <img
+                src={getImageUrl(heroAnime.coverImage?.extraLarge || '')}
+                alt={title}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover/poster:scale-105"
+              />
+              <div className="absolute inset-0 bg-[var(--md-sys-color-on-surface)] opacity-0 group-hover/poster:opacity-[0.08] transition-opacity pointer-events-none" />
+            </a>
           </div>
         </div>
       </div>

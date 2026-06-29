@@ -74,27 +74,40 @@ function getSimilarity(s1: string, s2: string): number {
 async function fetchWithRetry(url: string, init: RequestInit = {}, retries = 3, backoff = 500): Promise<Response> {
   let attempt = 0;
   while (true) {
-    const res = await fetch(url, init);
-    if (res.ok) return res;
-    
-    // Log details of the failure to help debug 403/502/etc.
-    if (res.status === 403 || res.status === 429 || res.status >= 500) {
-      try {
-        const text = await res.clone().text();
-        console.error(`[fetchWithRetry] Failed request to: ${url} | Status: ${res.status} | Body snippet:`, text.slice(0, 1000));
-      } catch (e) {
-        // ignore
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) return res;
+      
+      // Log details of the failure to help debug 403/502/etc.
+      if (res.status === 403 || res.status === 429 || res.status >= 500) {
+        try {
+          const text = await res.clone().text();
+          console.error(`[fetchWithRetry] Failed request to: ${url} | Status: ${res.status} | Body snippet:`, text.slice(0, 1000));
+        } catch (e) {
+          // ignore
+        }
       }
-    }
 
-    // Retry on transient errors
-    if ([403, 429, 502, 503, 504].includes(res.status) && attempt < retries) {
-      const delay = backoff * Math.pow(2, attempt);
-      await new Promise(r => setTimeout(r, delay));
-      attempt++;
-      continue;
+      // Retry on transient errors
+      if ([403, 429, 502, 503, 504].includes(res.status) && attempt < retries) {
+        const delay = backoff * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, delay));
+        attempt++;
+        continue;
+      }
+      throw new Error(`Fetch failed: HTTP ${res.status}`);
+    } catch (err: any) {
+      if (attempt < retries) {
+        const delay = backoff * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, delay));
+        attempt++;
+        continue;
+      }
+      throw err;
     }
-    throw new Error(`Fetch failed: HTTP ${res.status}`);
   }
 }
 
@@ -738,9 +751,9 @@ export const GET: APIRoute = async ({ request, clientAddress }) => {
       }
     }
 
-    if (!title && anilistId) {
+    if (anilistId) {
       try {
-        console.log(`[episode-links] Title is empty. Fetching fallback show details from AniList ID: ${anilistId}`);
+        console.log(`[episode-links] Fetching show details from AniList ID: ${anilistId}`);
         const aniRes = await fetch('https://graphql.anilist.co', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -753,20 +766,23 @@ export const GET: APIRoute = async ({ request, clientAddress }) => {
               }
             }`,
             variables: { id: parseInt(anilistId, 10) }
-          })
+          }),
+          signal: AbortSignal.timeout(15000)
         });
         if (aniRes.ok) {
           const json = await aniRes.json();
           const media = json?.data?.Media;
           if (media) {
-            title = mode === 'sub-id' 
-              ? (media.title.romaji || media.title.english || '')
-              : (media.title.english || media.title.romaji || '');
+            if (!title) {
+              title = mode === 'sub-id' 
+                ? (media.title.romaji || media.title.english || '')
+                : (media.title.english || media.title.romaji || '');
+            }
             englishTitle = media.title.english || '';
             romajiTitle = media.title.romaji || '';
-            synopsis = media.description || '';
-            thumbnail = media.coverImage?.extraLarge || '';
-            console.log(`[episode-links] Fallback AniList query resolved title: ${title}`);
+            if (!synopsis) synopsis = media.description || '';
+            if (!thumbnail) thumbnail = media.coverImage?.extraLarge || '';
+            console.log(`[episode-links] AniList query resolved titles - English: ${englishTitle}, Romaji: ${romajiTitle}`);
           }
         }
       } catch (err: any) {
@@ -780,7 +796,7 @@ export const GET: APIRoute = async ({ request, clientAddress }) => {
 
       try {
         const [otakudesuScraped, anichinScraped] = await Promise.all([
-          scrapeOtakudesu(title, episode).catch(e => {
+          scrapeOtakudesu(englishTitle || title, episode).catch(e => {
             console.error('[Otakudesu Scraper Error]', e);
             return [] as ScrapedSource[];
           }),

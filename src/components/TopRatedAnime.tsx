@@ -39,17 +39,8 @@ export default function TopRatedAnime() {
 
       return uniqueMedia.map((m: any) => {
         let episodeText: string | undefined;
-        if (m.nextAiringEpisode) {
-          const current = m.nextAiringEpisode.episode - 1;
-          if (current > 0) {
-            episodeText = `Ep ${current}/${m.episodes || '?'}`;
-          } else {
-            episodeText = 'Airing';
-          }
-        } else if (m.status === 'RELEASING') {
-          episodeText = 'Ongoing';
-        } else if (m.status === 'FINISHED') {
-          episodeText = m.episodes ? `${m.episodes} Episode` : 'Completed';
+        if (m.episodes) {
+          episodeText = `${m.episodes} Episode`;
         }
 
         return {
@@ -66,32 +57,37 @@ export default function TopRatedAnime() {
       });
     },
     staleTime: 60 * 60 * 1000,
-    retry: false,
+    retry: 1,
   });
 
   const [allAnime, setAllAnime] = useState<any[]>([]);
   const [visibleGridCount, setVisibleGridCount] = useState(12);
 
-  if (data && data.length > 0) {
-    const newIds = new Set(data.map(d => d.mal_id));
-    const currentIds = new Set(allAnime.map(d => d.mal_id));
-    const isNewData = Array.from(newIds).some(id => !currentIds.has(id));
-    
-    if (isNewData) {
+  useEffect(() => {
+    if (data && data.length > 0) {
       setAllAnime(prev => {
+        const currentIds = new Set(prev.map(d => d.mal_id));
+        const isNewData = data.some((d: any) => !currentIds.has(d.mal_id));
+        if (!isNewData) return prev;
         const combined = [...prev, ...data];
         return Array.from(new Map(combined.map(item => [item.mal_id, item])).values());
       });
     }
-  }
+  }, [data]);
 
   const displayList = allAnime.length > 0 ? allAnime : (data || []);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const showSkeleton = isPending || !mounted;
 
-  // Don't return null during initial hydration to match server HTML
-  if (mounted && isError && displayList.length === 0) return null;
+  if (mounted && isError && displayList.length === 0) {
+    return (
+      <div className="mb-8 px-2">
+        <h2 className="text-[22px] font-black mb-4 text-[var(--md-sys-color-on-surface)] tracking-wide uppercase">TOP RATED</h2>
+        <p className="text-[var(--md-sys-color-on-surface-variant)] text-sm">Couldn't load top rated anime.</p>
+      </div>
+    );
+  }
 
   const top3 = displayList.slice(0, 3);
   const rest = displayList.slice(3, 3 + visibleGridCount);
@@ -125,12 +121,12 @@ export default function TopRatedAnime() {
           <img src={proxiedThumb} alt={anime.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
         </div>
         <div className="absolute -inset-1 bg-gradient-to-t from-[var(--md-sys-color-background)] from-20% via-[var(--md-sys-color-background)]/80 via-60% to-transparent z-10 pointer-events-none" />
-        <div className={`absolute top-3 left-3 md:top-4 md:left-4 flex items-center justify-center font-bold rounded-[8px] z-10 ${
+        <div className={`absolute top-3 left-3 md:top-4 md:left-4 flex items-center justify-center font-bold rounded-[8px] z-10 shadow-lg ${
           rank === 1 
-            ? 'w-10 h-10 bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] text-[18px]' 
+            ? 'w-10 h-10 bg-amber-400 text-black text-[18px]' 
             : rank === 2
-            ? 'w-8 h-8 md:w-9 md:h-9 bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)] text-[15px]'
-            : 'w-8 h-8 md:w-9 md:h-9 bg-[var(--md-sys-color-surface-variant)] text-[var(--md-sys-color-on-surface-variant)] text-[15px]'
+            ? 'w-9 h-9 bg-zinc-300 text-zinc-800 text-[15px]'
+            : 'w-9 h-9 bg-amber-700 text-white text-[15px]'
         }`}>
           #{rank}
         </div>
@@ -169,7 +165,7 @@ export default function TopRatedAnime() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4 px-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 px-2">
         {rest.map((anime: any) => (
           <AnimeCard
             key={anime.anilist_id}

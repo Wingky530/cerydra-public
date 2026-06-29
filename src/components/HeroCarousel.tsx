@@ -84,13 +84,13 @@ export default function HeroCarousel({ initialHero = null }: { initialHero?: any
         }
       `;
       const variables = { season: currentSeason, seasonYear: currentYear };
-      const res = await fetch('https://graphql.anilist.co', {
+      const res = await fetch('/api/anime/ani-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, variables }),
         signal,
       });
-      if (!res.ok) throw new Error('Failed to fetch hero anime from AniList');
+      if (!res.ok) throw new Error('Failed to fetch hero anime');
       const json = await res.json();
       const mediaList = json?.data?.Page?.media || [];
       return mediaList.map((m: any) => ({
@@ -198,7 +198,13 @@ export default function HeroCarousel({ initialHero = null }: { initialHero?: any
   }
 
   if (isError || !animeList || animeList.length === 0) {
-    return null;
+    return (
+      <div className="relative w-full mb-2 bg-[var(--md-sys-color-background)] pt-4 md:pt-6 pb-8">
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-[var(--md-sys-color-on-surface-variant)] text-sm">Trending anime unavailable.</p>
+        </div>
+      </div>
+    );
   }
 
   const formatNumber = (num?: number) => {
@@ -229,6 +235,7 @@ export default function HeroCarousel({ initialHero = null }: { initialHero?: any
               key={`bg-${anime.mal_id}`}
               src={bannerUrl}
               alt=""
+              loading="lazy"
               className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out pointer-events-none filter blur-md scale-105 ${activeIndex === idx ? 'opacity-40' : 'opacity-0'}`}
             />
           );
@@ -310,6 +317,7 @@ export default function HeroCarousel({ initialHero = null }: { initialHero?: any
                   <img
                     src={anime.images?.webp?.large_image_url?.includes('myanimelist') ? `https://wsrv.nl/?url=${encodeURIComponent(anime.images.webp.large_image_url)}` : anime.images?.webp?.large_image_url}
                     alt={displayTitle}
+                    fetchPriority={idx === 0 ? 'high' : undefined}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />

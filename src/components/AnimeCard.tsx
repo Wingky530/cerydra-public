@@ -14,13 +14,15 @@ interface AnimeCardProps {
   onClick?: () => void;
   progressPercent?: number;
   episodeText?: string;
+  timeLabel?: string;
   statusLabel?: string;
+  formatLabel?: string;
   showRating?: boolean;
   showEpisode?: boolean;
   showPopularity?: boolean;
 }
 
-export default function AnimeCard({ id, name, thumbnail, episodeCount, score, popularity, href, onClick, progressPercent, episodeText, statusLabel, showRating = true, showEpisode = true, showPopularity = true }: AnimeCardProps) {
+export default function AnimeCard({ id, name, thumbnail, episodeCount, score, popularity, href, onClick, progressPercent, episodeText, timeLabel, statusLabel, formatLabel, showRating = true, showEpisode = true, showPopularity = true }: AnimeCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const cardRef = useRef<HTMLDivElement | HTMLAnchorElement>(null);
   const [svgP, setSvgP] = useState<{ w: number; h: number; d: string; perim: number } | null>(null);
@@ -54,15 +56,12 @@ export default function AnimeCard({ id, name, thumbnail, episodeCount, score, po
     return () => ro.disconnect();
   }, []);
   
-  const getInitialSrc = () => {
-    if (!thumbnail) return '/favicon.svg';
-    return thumbnail;
-  };
-  
-  const [imgSrc, setImgSrc] = useState(getInitialSrc);
+  const [imgSrc, setImgSrc] = useState(thumbnail || '');
+  const [imgError, setImgError] = useState(!thumbnail);
 
   useEffect(() => {
-    setImgSrc(getInitialSrc());
+    setImgSrc(thumbnail || '');
+    setImgError(!thumbnail);
   }, [thumbnail]);
   
   const handleNavigate = async (e: React.MouseEvent) => {
@@ -81,22 +80,38 @@ export default function AnimeCard({ id, name, thumbnail, episodeCount, score, po
   const targetHref = href || getAnimeUrl(id, name);
   const Component = onClick ? "div" : "a";
 
+  const handleKeyDown = onClick ? (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  } : undefined;
+
   return (
     <Component
       ref={cardRef as any}
       href={onClick ? undefined : targetHref}
       onClick={onClick ? onClick : handleNavigate}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={handleKeyDown}
       className="relative block w-full aspect-[2/3] rounded-xl bg-[var(--md-sys-color-background)] transition-transform duration-200 cursor-pointer group outline-none focus-visible:ring-2 focus-visible:ring-[var(--md-sys-color-primary)] no-underline active:scale-[0.98] transform-gpu"
     >
       {/* Image — clipped to rounded corners */}
       <div className="absolute inset-0 w-full h-full overflow-hidden rounded-xl bg-white/5">
-        <img
-          src={imgSrc}
-          alt={name}
-          loading="lazy"
-          onError={() => setImgSrc('/favicon.svg')}
-          className={`w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 ${imgSrc === '/favicon.svg' ? 'opacity-30 p-8 object-contain' : ''}`}
-        />
+        {imgError ? (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#141A2E] to-[#0B0E1A]">
+            <span className="material-symbols-outlined text-[32px] text-white/20">movie</span>
+          </div>
+        ) : (
+          <img
+            src={imgSrc}
+            alt={name}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+          />
+        )}
         {/* MD3 standard interaction state layer (8% on-surface on hover, 12% on active) */}
         <div className="absolute inset-0 bg-[var(--md-sys-color-on-surface)] opacity-0 group-hover:opacity-[0.08] group-active:opacity-[0.12] transition-opacity pointer-events-none z-10" />
         
@@ -107,14 +122,10 @@ export default function AnimeCard({ id, name, thumbnail, episodeCount, score, po
         )}
       </div>
       
-      <div className="absolute top-2 left-2 flex items-center gap-1 z-10">
-        {statusLabel && (
-          <div className={`px-1.5 py-0.5 rounded text-[11px] font-bold leading-none tracking-wider uppercase bg-[var(--md-sys-color-surface-container)] ${
-            statusLabel === 'Ongoing'
-              ? 'text-[var(--md-sys-color-primary)]'
-              : 'text-white/50'
-          }`}>
-            {statusLabel}
+      <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10 flex-wrap max-w-[80%]">
+        {formatLabel && (
+          <div className="bg-white px-1.5 py-0.5 rounded flex items-center shadow-sm">
+            <span className="text-black text-xs font-bold uppercase leading-none">{formatLabel}</span>
           </div>
         )}
         {showPopularity && popularity !== undefined && popularity !== null && (
@@ -141,12 +152,27 @@ export default function AnimeCard({ id, name, thumbnail, episodeCount, score, po
       
       {/* Title at bottom */}
       <div className="absolute inset-0 flex flex-col justify-end pb-3 px-3 z-10 pointer-events-none">
+        {timeLabel && (
+          <div className="text-[var(--md-sys-color-on-surface-variant)] text-[11px] font-medium leading-none mb-1 drop-shadow-md">
+            {timeLabel}
+          </div>
+        )}
         <h3 className="text-white text-[14px] font-medium leading-snug line-clamp-2 drop-shadow-md">
           {name}
         </h3>
-        {showEpisode && (
-          <p className="text-[var(--md-sys-color-on-surface-variant)] text-[12px] font-medium mt-0.5 drop-shadow-md">
-            {episodeText || (episodeCount ? `${episodeCount} Episode` : '')}
+        {(showEpisode && (episodeText || episodeCount || statusLabel)) && (
+          <p className="text-[var(--md-sys-color-on-surface-variant)] text-[12px] font-medium mt-0.5 drop-shadow-md flex items-center gap-1 leading-none">
+            {(episodeText || episodeCount) && (
+              <span>{episodeText || (episodeCount ? `${episodeCount} Episode` : '')}</span>
+            )}
+            {(episodeText || episodeCount) && statusLabel && <span className="text-white/20">•</span>}
+            {statusLabel && (
+              <span className={`text-[12px] font-semibold uppercase leading-none ${
+                statusLabel === 'Ongoing' ? 'text-green-400' : 'text-[var(--md-sys-color-primary)]'
+              }`}>
+                {statusLabel}
+              </span>
+            )}
           </p>
         )}
       </div>

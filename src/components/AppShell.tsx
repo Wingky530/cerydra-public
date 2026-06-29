@@ -53,7 +53,7 @@ function ScheduleIcon({ filled }: { filled?: boolean }) {
   return <span className={`material-symbols-outlined ${filled ? 'filled' : ''} text-[24px]`}>calendar_month</span>;
 }
 
-function NavItem({ href, label, icon, active, topNav = false, rail = false }: { href: string; label: string; icon: ReactNode; active: boolean; topNav?: boolean; rail?: boolean }) {
+function NavItem({ href, label, icon, active, topNav = false, rail = false, hideInactiveLabel = false }: { href: string; label: string; icon: ReactNode; active: boolean; topNav?: boolean; rail?: boolean; hideInactiveLabel?: boolean }) {
   if (topNav) {
     return (
       <a href={href} className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all group relative ${
@@ -77,14 +77,15 @@ function NavItem({ href, label, icon, active, topNav = false, rail = false }: { 
           : 'text-[var(--md-sys-color-on-surface-variant)] group-hover:bg-[var(--md-sys-color-on-surface)]/8'
       }`}>
         {icon}
-        {/* State layer for interaction */}
         <div className="absolute inset-0 rounded-full opacity-0 group-active:opacity-12 bg-[var(--md-sys-color-on-surface)] transition-opacity"></div>
       </div>
-      <span className={`text-[12px] font-medium tracking-wide transition-colors ${
-        active ? 'text-[var(--md-sys-color-on-surface)] font-bold' : 'text-[var(--md-sys-color-on-surface-variant)]'
-      }`}>
-        {label}
-      </span>
+      {(!hideInactiveLabel || active) && (
+        <span className={`text-[12px] font-medium tracking-wide transition-colors ${
+          active ? 'text-[var(--md-sys-color-on-surface)] font-bold' : 'text-[var(--md-sys-color-on-surface-variant)]'
+        }`}>
+          {label}
+        </span>
+      )}
     </a>
   );
 }
@@ -146,10 +147,10 @@ export default function AppShell({ children, activeTab, hideNav, showFloatingSea
         {/* Mobile Bottom Navigation Bar */}
         {!hideNav && (
           <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[10000] h-[80px] bg-[var(--md-sys-color-background)] flex justify-around items-center px-2 pb-safe border-t border-[var(--md-sys-color-surface-container)]">
-            <NavItem href="/" label="Home" icon={<HomeIcon filled={activeTab === 'home'} />} active={activeTab === 'home'} />
-            <NavItem href="/library" label="Library" icon={<LibraryIcon filled={activeTab === 'library'} />} active={activeTab === 'library'} />
-            <NavItem href="/history" label="History" icon={<HistoryIcon filled={activeTab === 'history'} />} active={activeTab === 'history'} />
-            <NavItem href="/profile" label="Profile" icon={<ProfileIcon filled={activeTab === 'profile'} session={session} />} active={activeTab === 'profile'} />
+            <NavItem href="/" label="Home" icon={<HomeIcon filled={activeTab === 'home'} />} active={activeTab === 'home'} hideInactiveLabel />
+            <NavItem href="/library" label="Library" icon={<LibraryIcon filled={activeTab === 'library'} />} active={activeTab === 'library'} hideInactiveLabel />
+            <NavItem href="/history" label="History" icon={<HistoryIcon filled={activeTab === 'history'} />} active={activeTab === 'history'} hideInactiveLabel />
+            <NavItem href="/profile" label="Profile" icon={<ProfileIcon filled={activeTab === 'profile'} session={session} />} active={activeTab === 'profile'} hideInactiveLabel />
           </nav>
         )}
       </div>

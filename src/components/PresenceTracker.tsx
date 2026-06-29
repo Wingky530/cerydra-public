@@ -32,8 +32,19 @@ export default function PresenceTracker() {
 
     const track = () => {
       const path = window.location.pathname;
-      if (path.startsWith('/watch/') || path.includes('/episode/')) return;
       const search = window.location.search;
+      const currentUrl = path + search;
+      
+      try {
+        const hist = JSON.parse(sessionStorage.getItem('cerydra_history') || '[]');
+        if (hist[hist.length - 1] !== currentUrl) {
+          hist.push(currentUrl);
+          if (hist.length > 20) hist.shift();
+          sessionStorage.setItem('cerydra_history', JSON.stringify(hist));
+        }
+      } catch (e) {}
+
+      if (path.startsWith('/watch/') || path.includes('/episode/')) return;
       let data: Record<string, unknown>;
       let rpcData: { details: string; state?: string; image?: string; url?: string } | null;
       if (path === '/' || path.startsWith('/browse')) {
